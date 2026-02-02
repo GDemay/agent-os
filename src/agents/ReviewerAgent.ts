@@ -210,8 +210,16 @@ Respond with JSON:
         });
         // Push merged changes
         await gitTool.execute({ action: 'push' });
-        await this.logActivity('git_merge', `Merged branch ${task.branchName} to master and pushed`, task.id);
-        await this.sendMessage(`🔀 Merged ${task.branchName} to master and pushed`, undefined, task.id);
+        await this.logActivity(
+          'git_merge',
+          `Merged branch ${task.branchName} to master and pushed`,
+          task.id,
+        );
+        await this.sendMessage(
+          `🔀 Merged ${task.branchName} to master and pushed`,
+          undefined,
+          task.id,
+        );
       } catch (mergeError) {
         await this.logActivity('git_error', `Merge failed: ${mergeError}`, task.id);
         await this.sendMessage(

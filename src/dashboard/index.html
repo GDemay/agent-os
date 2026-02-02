@@ -458,14 +458,20 @@
     // ========================================================================
 
     function showCreateTaskModal() {
+      // Pause auto-refresh while modal is open
+      clearInterval(refreshInterval);
       document.getElementById('new-task-title').value = '';
       document.getElementById('new-task-desc').value = '';
       document.getElementById('new-task-priority').value = '0';
       document.getElementById('create-modal').classList.remove('hidden');
+      // Focus the title input
+      setTimeout(() => document.getElementById('new-task-title').focus(), 100);
     }
 
     function closeCreateModal() {
       document.getElementById('create-modal').classList.add('hidden');
+      // Resume auto-refresh
+      refreshInterval = setInterval(refresh, 30000);
     }
 
     async function createTask(event) {
