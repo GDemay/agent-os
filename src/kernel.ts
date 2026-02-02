@@ -96,11 +96,20 @@ class EventDrivenKernel {
     // When a task is assigned → Worker starts immediately
     this.eventBus.subscribe('task:assigned', async (event) => {
       if (event.type !== 'task:assigned') return;
-      console.log(`[Kernel] Task assigned: ${event.task.title}`);
+      console.log(`[Kernel] Task assigned: ${event.task.title} to agent ${event.agentId}`);
 
       const worker = this.agents.get(event.agentId) as WorkerAgent;
       if (worker) {
-        await worker.processTask(event.task);
+        console.log(`[Kernel] Worker found, starting task processing...`);
+        try {
+          await worker.processTask(event.task);
+          console.log(`[Kernel] Task completed: ${event.task.title}`);
+        } catch (error) {
+          console.error(`[Kernel] Error processing task:`, error);
+        }
+      } else {
+        console.warn(`[Kernel] No worker found for agentId: ${event.agentId}`);
+        console.log(`[Kernel] Available agents: ${Array.from(this.agents.keys()).join(', ')}`);
       }
     });
 
@@ -172,7 +181,7 @@ class EventDrivenKernel {
   async start(): Promise<void> {
     this.isRunning = true;
 
-    // Process any existing inbox tasks
+    // Process any existing inbox goals (parent tasks)
     const inboxGoals = await prisma.task.findMany({
       where: { status: 'inbox', parentTaskId: null },
     });
@@ -181,6 +190,24 @@ class EventDrivenKernel {
 
     for (const goal of inboxGoals) {
       this.eventBus.dispatch({ type: 'task:created', task: goal });
+    }
+
+    // Process any in_progress tasks that have assignees
+    const inProgressTasks = await prisma.task.findMany({
+      where: { status: 'in_progress', assigneeId: { not: null } },
+      include: { assignee: true },
+    });
+
+    console.log(`[Kernel] Found ${inProgressTasks.length} in-progress tasks to continue`);
+
+    for (const task of inProgressTasks) {
+      if (task.assigneeId) {
+        this.eventBus.dispatch({
+          type: 'task:assigned',
+          task,
+          agentId: task.assigneeId,
+        });
+      }
     }
 
     // Process any assigned tasks
