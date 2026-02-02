@@ -32,15 +32,19 @@ def get_repo_info() -> tuple:
         url = result.stdout.strip()
         
         # Parse GitHub URL (handle both HTTPS and SSH)
-        if 'github.com' in url:
-            if url.startswith('git@'):
-                # git@github.com:owner/repo.git
-                parts = url.split(':')[1].replace('.git', '').split('/')
-            else:
-                # https://github.com/owner/repo or https://github.com/owner/repo.git
-                parts = url.replace('.git', '').split('/')[-2:]
-            
+        # Check for SSH format: git@github.com:owner/repo.git
+        if url.startswith('git@github.com:'):
+            parts = url.split(':')[1].replace('.git', '').split('/')
             return parts[0], parts[1]
+        # Check for HTTPS format: https://github.com/owner/repo(.git)
+        elif url.startswith('https://github.com/'):
+            parts = url.replace('https://github.com/', '').replace('.git', '').split('/')
+            return parts[0], parts[1]
+        else:
+            print(f"Error: Not a GitHub repository URL: {url}")
+            print("This script only works with GitHub repositories")
+            sys.exit(1)
+            
     except Exception as e:
         print(f"Error extracting repo info: {e}")
         sys.exit(1)
