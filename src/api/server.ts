@@ -13,7 +13,7 @@ const PORT = process.env.API_PORT || 3001;
 
 // Helper to get param as string
 const getIdParam = (req: Request): string => {
-  return getIdParam(req) as string;
+  return req.params.id as string;
 };
 
 // Middleware

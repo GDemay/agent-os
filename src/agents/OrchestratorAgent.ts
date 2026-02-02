@@ -16,6 +16,24 @@ export class OrchestratorAgent extends BaseAgent {
   }
 
   /**
+   * Process a new goal immediately (event-driven)
+   * @param goal - The goal task to process
+   */
+  async processNewGoal(goal: Task): Promise<void> {
+    await this.updateStatus('busy');
+    await this.logActivity('planning', `Processing new goal: ${goal.title}`, goal.id);
+
+    try {
+      await this.breakdownGoal(goal);
+      await this.assignTasks();
+    } catch (error) {
+      await this.logActivity('error', `Goal processing error: ${error}`, goal.id);
+    }
+
+    await this.updateStatus('idle');
+  }
+
+  /**
    * Heartbeat implementation for Orchestrator
    * Runs every 5 minutes to:
    * 1. Check for new goals (inbox tasks without parent)

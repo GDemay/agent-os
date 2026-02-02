@@ -44,10 +44,10 @@ export class ReviewerAgent extends BaseAgent {
   }
 
   /**
-   * Review a completed task
+   * Review a completed task (public for event-driven calls)
    * @param task - The task to review
    */
-  private async reviewTask(task: Task): Promise<void> {
+  async reviewTask(task: Task): Promise<void> {
     await this.logActivity('review_start', `Starting review: ${task.title}`, task.id);
 
     // Get task context - messages and activities

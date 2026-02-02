@@ -8,6 +8,7 @@
     "start": "node dist/index.js",
     "dev": "nodemon src/index.ts",
     "runner": "ts-node src/runner.ts",
+    "kernel": "ts-node src/kernel.ts",
     "cli": "ts-node src/cli/index.ts",
     "api": "ts-node src/api/server.ts",
     "lint": "eslint src/**/*.ts",

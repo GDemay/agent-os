@@ -19,6 +19,27 @@ export class WorkerAgent extends BaseAgent {
   }
 
   /**
+   * Process a task immediately (event-driven)
+   * @param task - The task to process
+   */
+  async processTask(task: Task): Promise<void> {
+    await this.updateStatus('busy');
+    this.currentTask = task;
+
+    try {
+      if (task.status === 'assigned') {
+        await this.executeTask(task);
+      } else if (task.status === 'in_progress') {
+        await this.continueTask(task);
+      }
+    } catch (error) {
+      await this.logActivity('error', `Task processing error: ${error}`, task.id);
+    }
+
+    await this.updateStatus('idle');
+  }
+
+  /**
    * Heartbeat implementation for Worker
    * Runs every 2 minutes to:
    * 1. Check for assigned tasks
