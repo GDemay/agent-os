@@ -30,7 +30,7 @@ async function verifySystem() {
         { role: 'system', content: 'You are a test.' },
         { role: 'user', content: 'Say "OK" if you can hear me.' },
       ],
-      { model: 'deepseek-chat', maxTokens: 10 }
+      { model: 'deepseek-chat', maxTokens: 10 },
     );
     console.log(`   ✅ DeepSeek API working`);
     console.log(`   ✅ Response: "${response.content}"`);
