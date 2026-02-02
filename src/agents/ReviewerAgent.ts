@@ -3,7 +3,7 @@ import { BaseAgent } from './BaseAgent';
 
 /**
  * ReviewerAgent - The system's quality gate
- * 
+ *
  * Responsibilities:
  * - Review completed tasks
  * - Validate code quality
@@ -64,9 +64,7 @@ export class ReviewerAgent extends BaseAgent {
     });
 
     const messageContext = messages.map((m) => m.content).join('\n---\n');
-    const activityContext = activities
-      .map((a) => `[${a.eventType}] ${a.message}`)
-      .join('\n');
+    const activityContext = activities.map((a) => `[${a.eventType}] ${a.message}`).join('\n');
 
     const prompt = `
 You are reviewing a completed task.
@@ -139,7 +137,7 @@ Respond with JSON:
    */
   private async approveTask(
     task: Task,
-    review: { reasoning: string; improvements?: string[] }
+    review: { reasoning: string; improvements?: string[] },
   ): Promise<void> {
     // Update task status to done
     await this.prisma.task.update({
@@ -174,7 +172,7 @@ Respond with JSON:
    */
   private async rejectTask(
     task: Task,
-    review: { reasoning: string; feedback: string }
+    review: { reasoning: string; feedback: string },
   ): Promise<void> {
     // Update task status back to in_progress
     await this.prisma.task.update({
@@ -186,7 +184,7 @@ Respond with JSON:
     await this.sendMessage(
       `❌ REJECTED: ${review.reasoning}\n\n📝 Feedback:\n${review.feedback}`,
       task.assigneeId || undefined,
-      task.id
+      task.id,
     );
 
     await this.logActivity('review_reject', `Rejected: ${task.title}`, task.id);
@@ -205,34 +203,18 @@ Respond with JSON:
           action: 'merge',
           branch: task.branchName,
         });
-        await this.logActivity(
-          'git_merge',
-          `Merged branch ${task.branchName} to main`,
-          task.id
-        );
-        await this.sendMessage(
-          `🔀 Merged ${task.branchName} to main`,
-          undefined,
-          task.id
-        );
+        await this.logActivity('git_merge', `Merged branch ${task.branchName} to main`, task.id);
+        await this.sendMessage(`🔀 Merged ${task.branchName} to main`, undefined, task.id);
       } catch (mergeError) {
-        await this.logActivity(
-          'git_error',
-          `Merge failed: ${mergeError}`,
-          task.id
-        );
+        await this.logActivity('git_error', `Merge failed: ${mergeError}`, task.id);
         await this.sendMessage(
           `⚠️ Merge failed: ${mergeError}. Manual merge may be required.`,
           undefined,
-          task.id
+          task.id,
         );
       }
     } else {
-      await this.logActivity(
-        'warning',
-        'Git tool not available - skipping merge',
-        task.id
-      );
+      await this.logActivity('warning', 'Git tool not available - skipping merge', task.id);
     }
   }
 
@@ -249,7 +231,7 @@ Respond with JSON:
     if (!parent) return;
 
     const allDone = parent.subtasks.every(
-      (sub) => sub.status === 'done' || sub.status === 'cancelled'
+      (sub) => sub.status === 'done' || sub.status === 'cancelled',
     );
 
     if (allDone && parent.status !== 'done') {
@@ -260,13 +242,9 @@ Respond with JSON:
       await this.logActivity(
         'parent_complete',
         `All subtasks done - marking parent "${parent.title}" as complete`,
-        parentId
+        parentId,
       );
-      await this.sendMessage(
-        `🎉 Goal complete: ${parent.title}`,
-        undefined,
-        parentId
-      );
+      await this.sendMessage(`🎉 Goal complete: ${parent.title}`, undefined, parentId);
 
       // Recursively check grandparent
       if (parent.parentTaskId) {

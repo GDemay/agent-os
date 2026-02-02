@@ -23,7 +23,7 @@ interface SchedulerConfig {
 
 /**
  * HeartbeatScheduler - Manages the pulse of the agent system
- * 
+ *
  * Responsibilities:
  * - Load agents from database
  * - Create appropriate agent instances

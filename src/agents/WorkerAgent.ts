@@ -3,7 +3,7 @@ import { BaseAgent } from './BaseAgent';
 
 /**
  * WorkerAgent - The system's builder
- * 
+ *
  * Responsibilities:
  * - Execute assigned tasks
  * - Use tools to write code, run commands
@@ -180,27 +180,19 @@ Respond with a JSON object:
               await this.logActivity(
                 'tool_call',
                 `${action.tool}: ${JSON.stringify(result).slice(0, 500)}`,
-                task.id
+                task.id,
               );
               // Store result as message for context
               await this.sendMessage(
                 `Tool ${action.tool} result: ${JSON.stringify(result).slice(0, 1000)}`,
                 undefined,
-                task.id
+                task.id,
               );
             } catch (toolError) {
-              await this.logActivity(
-                'tool_error',
-                `${action.tool} failed: ${toolError}`,
-                task.id
-              );
+              await this.logActivity('tool_error', `${action.tool} failed: ${toolError}`, task.id);
             }
           } else {
-            await this.logActivity(
-              'warning',
-              `Tool not found: ${action.tool}`,
-              task.id
-            );
+            await this.logActivity('warning', `Tool not found: ${action.tool}`, task.id);
           }
         }
       }
@@ -215,39 +207,27 @@ Respond with a JSON object:
             completedAt: new Date(),
           },
         });
-        await this.sendMessage(
-          `✅ Task complete: ${parsed.summary}`,
-          undefined,
-          task.id
-        );
+        await this.sendMessage(`✅ Task complete: ${parsed.summary}`, undefined, task.id);
         await this.logActivity('task_complete', `Completed: ${task.title}`, task.id);
       } else if (parsed.status === 'blocked') {
         await this.prisma.task.update({
           where: { id: task.id },
           data: { status: 'blocked', error: parsed.summary },
         });
-        await this.sendMessage(
-          `🚫 BLOCKED: ${parsed.summary}`,
-          undefined,
-          task.id
-        );
+        await this.sendMessage(`🚫 BLOCKED: ${parsed.summary}`, undefined, task.id);
         await this.logActivity('task_blocked', `Blocked: ${parsed.summary}`, task.id);
       } else {
         // Status is 'working' - log progress
         await this.sendMessage(
           `🔄 Progress: ${parsed.summary || 'Working...'}`,
           undefined,
-          task.id
+          task.id,
         );
       }
     } catch (e) {
       await this.logActivity('error', `Failed to process response: ${e}`, task.id);
       // Don't block the task for parse errors - log and continue
-      await this.sendMessage(
-        `⚠️ Worker encountered an error: ${e}`,
-        undefined,
-        task.id
-      );
+      await this.sendMessage(`⚠️ Worker encountered an error: ${e}`, undefined, task.id);
     }
   }
 }

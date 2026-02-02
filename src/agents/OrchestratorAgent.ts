@@ -3,7 +3,7 @@ import { BaseAgent } from './BaseAgent';
 
 /**
  * OrchestratorAgent - The system's brain
- * 
+ *
  * Responsibilities:
  * - Break down high-level goals into actionable tasks
  * - Monitor system health and worker progress
@@ -122,7 +122,7 @@ IMPORTANT: Respond ONLY with valid JSON, no additional text:
       await this.logActivity(
         'planning',
         `Created ${parsed.tasks.length} subtasks for goal: ${goal.title}`,
-        goal.id
+        goal.id,
       );
     } catch (e) {
       await this.logActivity('error', `Failed to parse breakdown: ${e}`, goal.id);
@@ -195,13 +195,9 @@ Respond with JSON:
           await this.sendMessage(
             `⚠️ ESCALATION: Task "${task.title}" needs human intervention. Reason: ${parsed.reasoning}`,
             undefined,
-            task.id
+            task.id,
           );
-          await this.logActivity(
-            'escalation',
-            `Escalated blocked task: ${task.title}`,
-            task.id
-          );
+          await this.logActivity('escalation', `Escalated blocked task: ${task.title}`, task.id);
           break;
       }
     } catch (e) {
@@ -253,20 +249,20 @@ Respond with JSON:
       await this.sendMessage(
         `📋 Assigned task: ${task.title}\n\nDescription: ${task.description || 'No description'}`,
         worker.id,
-        task.id
+        task.id,
       );
 
       await this.logActivity(
         'assignment',
         `Assigned "${task.title}" to worker ${worker.name}`,
-        task.id
+        task.id,
       );
     }
 
     if (unassignedTasks.length > 0) {
       await this.logActivity(
         'assignment',
-        `Assigned ${Math.min(idleWorkers.length, unassignedTasks.length)} tasks to workers`
+        `Assigned ${Math.min(idleWorkers.length, unassignedTasks.length)} tasks to workers`,
       );
     }
   }

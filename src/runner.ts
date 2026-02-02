@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
 import { HeartbeatScheduler } from './scheduler';
+import { FileSystemTool, ShellTool, GitTool, createDatabaseTool } from './tools';
 
 // Load environment variables
 dotenv.config();
@@ -9,7 +10,7 @@ const prisma = new PrismaClient();
 
 /**
  * Main entry point for the AgentOS kernel
- * 
+ *
  * Starts the heartbeat scheduler and keeps the system running.
  * Handles graceful shutdown on SIGINT/SIGTERM.
  */
@@ -46,17 +47,13 @@ async function main(): Promise<void> {
   console.log('[Kernel] Initializing scheduler...');
   const scheduler = new HeartbeatScheduler(prisma);
 
-  // TODO: Register tools when they are implemented
-  // Example:
-  // import { FileSystemTool } from './tools/FileSystemTool';
-  // import { ShellTool } from './tools/ShellTool';
-  // import { GitTool } from './tools/GitTool';
-  // import { createDatabaseTool } from './tools/DatabaseTool';
-  //
-  // scheduler.registerTool(new FileSystemTool());
-  // scheduler.registerTool(new ShellTool());
-  // scheduler.registerTool(new GitTool());
-  // scheduler.registerTool(createDatabaseTool(prisma));
+  // Register tools with the scheduler
+  console.log('[Kernel] Registering tools...');
+  scheduler.registerTool(FileSystemTool);
+  scheduler.registerTool(ShellTool);
+  scheduler.registerTool(GitTool);
+  scheduler.registerTool(createDatabaseTool(prisma));
+  console.log('[Kernel] Registered 4 tools: filesystem, shell, git, database');
 
   await scheduler.initialize();
 
