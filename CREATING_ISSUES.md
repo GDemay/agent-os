@@ -60,7 +60,37 @@ The script will create **10 high-priority GitHub issues**:
 
 ## How to Use
 
-### Option 1: Using the Generated Shell Script (Recommended)
+### Option 1: Using the API Script (Recommended for CI/CD)
+
+Use the Python script that works with GitHub API directly:
+
+```bash
+# Make sure you're in the repository root
+cd /home/runner/work/agent-os/agent-os
+
+# Test what will be created (dry-run mode)
+./create_issues_api.py --dry-run
+
+# Install required dependency
+pip install requests
+
+# Set your GitHub token (get one from https://github.com/settings/tokens)
+export GITHUB_TOKEN='your_token_here'
+
+# Run the API script
+./create_issues_api.py
+```
+
+This method:
+- Works in CI/CD environments
+- Doesn't require `gh` CLI authentication
+- Provides better error messages
+- Can be automated easily
+- Supports dry-run mode with `--dry-run` flag
+
+### Option 2: Using the Generated Shell Script
+
+Use the traditional `gh` CLI approach:
 
 ```bash
 # Make sure you're in the repository root
@@ -73,7 +103,7 @@ gh auth login
 ./create_issues.sh
 ```
 
-### Option 2: Using GitHub CLI Manually
+### Option 3: Using GitHub CLI Manually
 
 If you prefer to create issues one at a time or customize them:
 
@@ -89,7 +119,7 @@ EOF
     --label "phase-0,backend,setup,priority-critical"
 ```
 
-### Option 3: Regenerate the Script
+### Option 4: Regenerate the Script
 
 If you want to modify the issues before creating them:
 
