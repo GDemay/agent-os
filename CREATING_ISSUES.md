@@ -66,7 +66,7 @@ Use the Python script that works with GitHub API directly:
 
 ```bash
 # Make sure you're in the repository root
-cd /home/runner/work/agent-os/agent-os
+cd /path/to/agent-os
 
 # Test what will be created (dry-run mode)
 ./create_issues_api.py --dry-run
@@ -94,7 +94,7 @@ Use the traditional `gh` CLI approach:
 
 ```bash
 # Make sure you're in the repository root
-cd /home/runner/work/agent-os/agent-os
+cd /path/to/agent-os
 
 # Authenticate with GitHub CLI (if not already done)
 gh auth login
