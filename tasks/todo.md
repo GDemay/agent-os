@@ -1,17 +1,11 @@
 # Task Tracking
 
-## Phase 1: Foundation
-- [x] [#3] Initialize Node.js + TypeScript project
-- [x] [#4] Set up Prisma with PostgreSQL schema
-- [x] [#11] Create LLM provider abstraction layer (DeepSeek + OpenCode)
-- [x] [#21] Create seed data for agents
-- [ ] [#6] Create BaseAgent class
-- [ ] [#18] Implement CLI (Basic)
+## Phase 4: Validation - Issue #22
+- [x] Add WebSearch tool (DuckDuckGo API) in src/tools/WebSearchTool.ts
+- [x] Export tool from src/tools/index.ts
+- [x] Register tool in src/runner.ts
+- [x] Build and verify tool integration
 
-## Current Status
-- Project initialized (Node/TS/ESLint).
-- Database schema defined (Agents, Tasks, Messages).
-- Prisma Client set up (v7.3).
-- LLM Abstraction implemented (DeepSeek + OpenCode).
-- Seed script created.
-- Ready for Agent Logic implementation.
+## Review
+- [ ] Confirm tool appears in scheduler registration output
+- [x] Confirm npm run build succeeds

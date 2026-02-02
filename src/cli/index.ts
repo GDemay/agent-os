@@ -17,9 +17,7 @@ program
 // ============================================================================
 // Task Commands
 // ============================================================================
-const taskCmd = program
-  .command('task')
-  .description('Manage tasks');
+const taskCmd = program.command('task').description('Manage tasks');
 
 taskCmd
   .command('create')
@@ -51,7 +49,10 @@ taskCmd
 taskCmd
   .command('list')
   .description('List tasks')
-  .option('-s, --status <status>', 'Filter by status (inbox, assigned, in_progress, review, done, blocked)')
+  .option(
+    '-s, --status <status>',
+    'Filter by status (inbox, assigned, in_progress, review, done, blocked)',
+  )
   .option('-l, --limit <limit>', 'Number of tasks to show', '20')
   .action(async (options) => {
     try {
@@ -85,7 +86,9 @@ taskCmd
       for (const t of tasks) {
         const colorFn = statusColors[t.status] || chalk.white;
         const assignee = t.assignee ? chalk.cyan(` → ${t.assignee.name}`) : '';
-        console.log(`  ${colorFn(`[${t.status.padEnd(11)}]`)} ${t.title.substring(0, 50)}${assignee}`);
+        console.log(
+          `  ${colorFn(`[${t.status.padEnd(11)}]`)} ${t.title.substring(0, 50)}${assignee}`,
+        );
         console.log(chalk.gray(`    ID: ${t.id}`));
       }
       console.log();
@@ -136,7 +139,11 @@ taskCmd
       if (task.messages.length > 0) {
         console.log(chalk.bold('\n  Messages:'));
         for (const msg of task.messages) {
-          console.log(chalk.gray(`    ${msg.createdAt.toLocaleTimeString()}: ${msg.content.substring(0, 60)}`));
+          console.log(
+            chalk.gray(
+              `    ${msg.createdAt.toLocaleTimeString()}: ${msg.content.substring(0, 60)}`,
+            ),
+          );
         }
       }
       console.log();
@@ -183,9 +190,7 @@ taskCmd
 // ============================================================================
 // Agent Commands
 // ============================================================================
-const agentCmd = program
-  .command('agent')
-  .description('View and manage agents');
+const agentCmd = program.command('agent').description('View and manage agents');
 
 agentCmd
   .command('list')
@@ -203,8 +208,8 @@ agentCmd
       console.log(chalk.bold('\n🤖 Agents:\n'));
 
       for (const a of agents) {
-        const statusIcon = a.status === 'online' || a.status === 'idle' ? '🟢' : 
-                          a.status === 'busy' ? '🟡' : '⚫';
+        const statusIcon =
+          a.status === 'online' || a.status === 'idle' ? '🟢' : a.status === 'busy' ? '🟡' : '⚫';
         const taskCount = a.tasksAssigned.length;
         console.log(`  ${statusIcon} ${chalk.bold(a.name)} (${a.role})`);
         console.log(chalk.gray(`     Status: ${a.status} | Tasks: ${taskCount}`));
@@ -252,7 +257,11 @@ agentCmd
       if (agent.activities.length > 0) {
         console.log(chalk.bold('\n  Recent Activity:'));
         for (const a of agent.activities) {
-          console.log(chalk.gray(`    ${a.createdAt.toLocaleTimeString()}: [${a.eventType}] ${a.message?.substring(0, 50) || ''}`));
+          console.log(
+            chalk.gray(
+              `    ${a.createdAt.toLocaleTimeString()}: [${a.eventType}] ${a.message?.substring(0, 50) || ''}`,
+            ),
+          );
         }
       }
       console.log();
@@ -287,19 +296,22 @@ program
       // Agents
       console.log(chalk.bold('🤖 Agents:'));
       for (const a of agents) {
-        const statusIcon = a.status === 'online' || a.status === 'idle' ? '🟢' : 
-                          a.status === 'busy' ? '🟡' : '⚫';
+        const statusIcon =
+          a.status === 'online' || a.status === 'idle' ? '🟢' : a.status === 'busy' ? '🟡' : '⚫';
         console.log(`  ${statusIcon} ${a.name} (${a.role}) - ${a.status}`);
       }
 
       // Tasks
       console.log(chalk.bold('\n📋 Tasks:'));
       const statusOrder = ['inbox', 'assigned', 'in_progress', 'review', 'done', 'blocked'];
-      const taskMap = taskStats.reduce((acc, t) => {
-        acc[t.status] = t._count;
-        return acc;
-      }, {} as Record<string, number>);
-      
+      const taskMap = taskStats.reduce(
+        (acc, t) => {
+          acc[t.status] = t._count;
+          return acc;
+        },
+        {} as Record<string, number>,
+      );
+
       for (const status of statusOrder) {
         const count = taskMap[status] || 0;
         if (count > 0) {
@@ -313,7 +325,9 @@ program
         for (const a of recentActivity) {
           const time = a.createdAt.toLocaleTimeString();
           const agent = a.agent?.name || 'System';
-          console.log(chalk.gray(`  ${time} [${agent}] ${a.eventType}: ${a.message?.substring(0, 40) || ''}`));
+          console.log(
+            chalk.gray(`  ${time} [${agent}] ${a.eventType}: ${a.message?.substring(0, 40) || ''}`),
+          );
         }
       }
 

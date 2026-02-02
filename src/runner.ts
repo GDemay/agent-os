@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
 import { HeartbeatScheduler } from './scheduler';
-import { FileSystemTool, ShellTool, GitTool, createDatabaseTool } from './tools';
+import { FileSystemTool, ShellTool, GitTool, createDatabaseTool, WebSearchTool } from './tools';
 
 // Load environment variables
 dotenv.config();
@@ -53,7 +53,8 @@ async function main(): Promise<void> {
   scheduler.registerTool(ShellTool);
   scheduler.registerTool(GitTool);
   scheduler.registerTool(createDatabaseTool(prisma));
-  console.log('[Kernel] Registered 4 tools: filesystem, shell, git, database');
+  scheduler.registerTool(WebSearchTool);
+  console.log('[Kernel] Registered 5 tools: filesystem, shell, git, database, websearch');
 
   await scheduler.initialize();
 
