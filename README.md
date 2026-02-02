@@ -14,7 +14,7 @@ npm install
 
 # Set up environment
 cp .env.example .env
-# Add your API keys (ANTHROPIC_API_KEY, OPENAI_API_KEY)
+# Add your API keys (DEEPSEEK_API_KEY, OPENCODE_API_KEY)
 
 # Initialize database
 npx prisma db push

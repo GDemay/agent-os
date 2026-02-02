@@ -20,13 +20,14 @@
 - [#21](https://github.com/GDemay/agent-os/issues/21) - Create seed data for agents
 
 ### LLM Layer
-- [#11](https://github.com/GDemay/agent-os/issues/11) - Create LLM provider abstraction layer
+- [#11](https://github.com/GDemay/agent-os/issues/11) - Create LLM provider abstraction layer (DeepSeek + OpenCode)
 
 ### Agent System
 - [#6](https://github.com/GDemay/agent-os/issues/6) - Create BaseAgent class with tool system
 - [#7](https://github.com/GDemay/agent-os/issues/7) - Implement Orchestrator (Planner) agent
 - [#8](https://github.com/GDemay/agent-os/issues/8) - Implement Worker (Coder) agent
 - [#9](https://github.com/GDemay/agent-os/issues/9) - Implement Reviewer (Judge) agent
+- [#21](https://github.com/GDemay/agent-os/issues/21) - Create seed data for agents (DeepSeek models)
 
 ### Tools
 - [#10](https://github.com/GDemay/agent-os/issues/10) - Implement FileSystem tool
@@ -83,7 +84,7 @@ agent-os/
 
 ## Database
 
-**Connection**: Railway PostgreSQL  
+**Connection**: Railway PostgreSQL
 **Status**: Not initialized (waiting for schema - Issue #4)
 
 ---

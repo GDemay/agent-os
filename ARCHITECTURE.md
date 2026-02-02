@@ -75,7 +75,7 @@ AgentOS is a minimal "kernel" that enables autonomous software development. The 
 - Review blocked/stalled tasks
 - Optimize task queue
 
-**Model**: `gpt-4o` or `claude-3-5-sonnet` (needs reasoning)
+**Model**: `deepseek-reasoner` (R1) - Optimized for complex planning
 
 ### 2. Worker (Coder)
 
@@ -93,7 +93,7 @@ AgentOS is a minimal "kernel" that enables autonomous software development. The 
 - Push to feature branch
 - Update task status
 
-**Model**: `claude-3-5-sonnet` or `gpt-4o` (needs coding ability)
+**Model**: `deepseek-chat` (V3) - Optimized for coding speed/cost
 
 ### 3. Reviewer (Judge)
 
@@ -111,7 +111,7 @@ AgentOS is a minimal "kernel" that enables autonomous software development. The 
 - If pass → merge to main
 - If fail → send back to worker with feedback
 
-**Model**: `gpt-4o` or `claude-3-5-sonnet` (needs judgment)
+**Model**: `deepseek-reasoner` (R1) - Optimized for logic/verification
 
 ---
 
@@ -244,40 +244,37 @@ The critical capability: agents can modify their own codebase.
 ```yaml
 # config/llm.yaml
 providers:
-  anthropic:
-    api_key: ${ANTHROPIC_API_KEY}
+  deepseek:
+    api_key: ${DEEPSEEK_API_KEY}
+    base_url: https://api.deepseek.com
     models:
-      - claude-3-5-sonnet-20241022
-      - claude-3-haiku-20240307
-
-  openai:
-    api_key: ${OPENAI_API_KEY}
+      - deepseek-reasoner  # DeepSeek R1 (Planning/Reasoning)
+      - deepseek-chat      # DeepSeek V3 (Coding/General)
+  
+  opencode: # Generic OpenAI-compatible provider (e.g. Kimi, Qwen, Local)
+    api_key: ${OPENCODE_API_KEY}
+    base_url: ${OPENCODE_BASE_URL}
     models:
-      - gpt-4o
-      - gpt-4o-mini
+      - moonshot-v1-8k  # Kimi
+      - qwen-2.5-coder
 
 # Role-based model assignment
 roles:
   orchestrator:
-    primary: gpt-4o
-    fallback: claude-3-5-sonnet-20241022
-
+    primary: deepseek-reasoner
+    fallback: deepseek-chat
+  
   worker:
-    primary: claude-3-5-sonnet-20241022
-    fallback: gpt-4o
-
+    primary: deepseek-chat
+    fallback: opencode/moonshot-v1-8k
+  
   reviewer:
-    primary: gpt-4o
-    fallback: claude-3-5-sonnet-20241022
-
+    primary: deepseek-reasoner
+    fallback: deepseek-chat
+  
   heartbeat:
-    primary: gpt-4o-mini  # Cheap for routine checks
-    fallback: claude-3-haiku-20240307
-```
-
----
-
-## Tech Stack
+    primary: deepseek-chat  # Extremely cheap
+    fallback: opencode/moonshot-v1-8k
 
 | Layer | Technology | Rationale |
 |-------|------------|-----------|

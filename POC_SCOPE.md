@@ -50,7 +50,7 @@ Create a self-improving autonomous development system with 3 core agents (Orches
 | **Agent Coordination** | Orchestrator creates task, Worker executes, Reviewer validates |
 | **Persistence** | All state in PostgreSQL, survives restarts |
 | **Visibility** | Dashboard shows what agents are doing in real-time |
-| **Cost Efficient** | Heartbeats use cheap models (`gpt-4o-mini`) |
+| **Cost Efficient** | Uses DeepSeek API with OpenCode/Kimi fallback |
 
 ---
 
@@ -74,7 +74,7 @@ Create a self-improving autonomous development system with 3 core agents (Orches
 | Language | TypeScript | Type safety, good LLM SDKs |
 | Database | PostgreSQL | ACID, LISTEN/NOTIFY for real-time |
 | ORM | Prisma | Type-safe, easy migrations |
-| LLM | Claude + GPT | Best coding models available |
+| LLM | DeepSeek (R1/V3) | State of the art coding/reasoning, low cost |
 | Frontend | React + Tailwind | Simple, agents can iterate on it |
 | Deploy | Docker + Railway | Cheap, works with provided DB |
 
