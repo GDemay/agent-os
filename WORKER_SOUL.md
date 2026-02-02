@@ -101,7 +101,7 @@ You write clean, tested, documented code. You follow the project's conventions.
 
 ## Model
 
-**Primary**: `claude-3-5-sonnet-20241022` (best coding)  
+**Primary**: `claude-3-5-sonnet-20241022` (best coding)
 **Fallback**: `gpt-4o`
 
 ## Mantra

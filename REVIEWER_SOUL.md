@@ -127,7 +127,7 @@ You think like a user. You think about edge cases. You verify that code does wha
 
 ## Model
 
-**Primary**: `gpt-4o` (strong judgment)  
+**Primary**: `gpt-4o` (strong judgment)
 **Fallback**: `claude-3-5-sonnet-20241022`
 
 ## Mantra

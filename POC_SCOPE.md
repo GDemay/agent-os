@@ -110,7 +110,7 @@ Tables:
 The PoC is **done** when we can:
 
 1. Run `agentos start` and see all 3 agents heartbeating
-2. Run `agentos task create "Add a WebSearch tool"` 
+2. Run `agentos task create "Add a WebSearch tool"`
 3. Watch Orchestrator break it down
 4. Watch Worker implement it
 5. Watch Reviewer approve and merge

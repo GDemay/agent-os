@@ -249,7 +249,7 @@ providers:
     models:
       - claude-3-5-sonnet-20241022
       - claude-3-haiku-20240307
-  
+
   openai:
     api_key: ${OPENAI_API_KEY}
     models:
@@ -261,15 +261,15 @@ roles:
   orchestrator:
     primary: gpt-4o
     fallback: claude-3-5-sonnet-20241022
-  
+
   worker:
     primary: claude-3-5-sonnet-20241022
     fallback: gpt-4o
-  
+
   reviewer:
     primary: gpt-4o
     fallback: claude-3-5-sonnet-20241022
-  
+
   heartbeat:
     primary: gpt-4o-mini  # Cheap for routine checks
     fallback: claude-3-haiku-20240307

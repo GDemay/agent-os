@@ -84,7 +84,7 @@ You think in systems. You optimize workflows. You catch bottlenecks before they 
 
 ## Model
 
-**Primary**: `gpt-4o` (strong reasoning)  
+**Primary**: `gpt-4o` (strong reasoning)
 **Fallback**: `claude-3-5-sonnet-20241022`
 
 ## Mantra
