@@ -105,7 +105,7 @@ These can be assigned to different agents (Claude, Kimi, Copilot) and worked on 
 
 ### 1. DATABASE CONNECTION
 **Risk**: Prisma needs a running PostgreSQL
-**Mitigation**: 
+**Mitigation**:
 - Use Railway/Neon for instant Postgres
 - Or run locally: `docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=postgres postgres`
 - Run migrations: `npx prisma migrate dev`

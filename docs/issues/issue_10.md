@@ -43,12 +43,12 @@ export const FileSystemTool: Tool = {
     path: { type: 'string', description: 'Relative path from project root' },
     content: { type: 'string', description: 'Content to write (for write action)' }
   },
-  
+
   async execute(args: Record<string, unknown>): Promise<unknown> {
     const { action, path: filePath, content } = args as FileSystemArgs;
     const projectRoot = process.cwd();
     const fullPath = path.resolve(projectRoot, filePath);
-    
+
     // Security: Ensure path is within project
     if (!fullPath.startsWith(projectRoot)) {
       throw new Error('Path traversal not allowed');
@@ -57,20 +57,20 @@ export const FileSystemTool: Tool = {
     switch (action) {
       case 'read':
         return await fs.readFile(fullPath, 'utf-8');
-      
+
       case 'write':
         if (!content) throw new Error('Content required for write');
         await fs.mkdir(path.dirname(fullPath), { recursive: true });
         await fs.writeFile(fullPath, content, 'utf-8');
         return { success: true, path: filePath };
-      
+
       case 'list':
         const entries = await fs.readdir(fullPath, { withFileTypes: true });
         return entries.map(e => ({
           name: e.name,
           type: e.isDirectory() ? 'directory' : 'file'
         }));
-      
+
       case 'exists':
         try {
           await fs.access(fullPath);
@@ -78,11 +78,11 @@ export const FileSystemTool: Tool = {
         } catch {
           return { exists: false };
         }
-      
+
       case 'delete':
         await fs.unlink(fullPath);
         return { success: true, deleted: filePath };
-      
+
       default:
         throw new Error(`Unknown action: ${action}`);
     }

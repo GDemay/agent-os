@@ -44,7 +44,7 @@ export const ShellTool: Tool = {
 
   async execute(args: Record<string, unknown>): Promise<unknown> {
     const { command, cwd, timeout = 30000 } = args as ShellArgs;
-    
+
     // Security: Check if command starts with allowed prefix
     const firstWord = command.trim().split(/\s+/)[0];
     if (!ALLOWED_COMMANDS.some(cmd => firstWord === cmd || firstWord.endsWith(`/${cmd}`))) {

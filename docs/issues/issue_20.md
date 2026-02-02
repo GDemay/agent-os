@@ -127,7 +127,7 @@ Single HTML file that calls the API.
     async function loadTasks() {
       const res = await fetch(`${API_BASE}/tasks?limit=50`);
       const tasks = await res.json();
-      
+
       const columns = { inbox: [], assigned: [], in_progress: [], review: [], done: [], blocked: [] };
       tasks.forEach(t => {
         if (columns[t.status]) columns[t.status].push(t);

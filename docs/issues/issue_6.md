@@ -42,41 +42,41 @@ export abstract class BaseAgent {
   protected llm: LLMProvider;
   protected agentRecord: Agent;
   protected tools: Map<string, Tool> = new Map();
-  
+
   constructor(prisma: PrismaClient, agentRecord: Agent) {
     this.prisma = prisma;
     this.agentRecord = agentRecord;
     const config = agentRecord.modelConfig as AgentConfig['modelConfig'];
     this.llm = LLMFactory.create(config.provider);
   }
-  
+
   registerTool(tool: Tool): void { this.tools.set(tool.name, tool); }
-  
+
   getToolDefinitions(): string {
     return Array.from(this.tools.values()).map(t => `- ${t.name}: ${t.description}`).join('\n');
   }
-  
+
   abstract heartbeat(): Promise<void>;
-  
+
   async updateStatus(status: 'online' | 'offline' | 'busy' | 'idle'): Promise<void> {
     await this.prisma.agent.update({
       where: { id: this.agentRecord.id },
       data: { status, lastHeartbeat: new Date() }
     });
   }
-  
+
   async logActivity(eventType: string, message: string, taskId?: string): Promise<void> {
     await this.prisma.activity.create({
       data: { eventType, agentId: this.agentRecord.id, taskId, message, metadata: {} }
     });
   }
-  
+
   async sendMessage(content: string, toAgentId?: string, taskId?: string): Promise<void> {
     await this.prisma.message.create({
       data: { content, fromAgentId: this.agentRecord.id, toAgentId, taskId, messageType: 'comment' }
     });
   }
-  
+
   protected async think(userPrompt: string): Promise<LLMResponse> {
     const messages: LLMMessage[] = [
       { role: 'system', content: this.agentRecord.systemPrompt || '' },

@@ -46,7 +46,7 @@ app.get('/api/tasks', async (req: Request, res: Response) => {
   const where: any = {};
   if (status) where.status = status;
   if (assignee) where.assigneeId = assignee;
-  
+
   const tasks = await prisma.task.findMany({
     where,
     include: { assignee: true, createdBy: true },
@@ -59,8 +59,8 @@ app.get('/api/tasks', async (req: Request, res: Response) => {
 app.get('/api/tasks/:id', async (req: Request, res: Response) => {
   const task = await prisma.task.findUnique({
     where: { id: req.params.id },
-    include: { 
-      assignee: true, 
+    include: {
+      assignee: true,
       createdBy: true,
       messages: { orderBy: { createdAt: 'asc' } },
       subtasks: true
@@ -73,7 +73,7 @@ app.get('/api/tasks/:id', async (req: Request, res: Response) => {
 app.post('/api/tasks', async (req: Request, res: Response) => {
   const { title, description, priority = 0 } = req.body;
   if (!title) return res.status(400).json({ error: 'Title required' });
-  
+
   const task = await prisma.task.create({
     data: { title, description, priority, status: 'inbox' }
   });
@@ -116,7 +116,7 @@ app.get('/api/activities', async (req: Request, res: Response) => {
   const where: any = {};
   if (agent) where.agentId = agent;
   if (task) where.taskId = task;
-  
+
   const activities = await prisma.activity.findMany({
     where,
     include: { agent: true, task: true },
@@ -139,7 +139,7 @@ app.get('/api/tasks/:id/messages', async (req: Request, res: Response) => {
 app.post('/api/tasks/:id/messages', async (req: Request, res: Response) => {
   const { content, fromAgentId } = req.body;
   if (!content) return res.status(400).json({ error: 'Content required' });
-  
+
   const message = await prisma.message.create({
     data: {
       taskId: req.params.id,
@@ -158,7 +158,7 @@ app.get('/api/stats', async (req: Request, res: Response) => {
     prisma.agent.findMany({ select: { id: true, name: true, role: true, status: true } }),
     prisma.activity.findMany({ orderBy: { createdAt: 'desc' }, take: 10 })
   ]);
-  
+
   res.json({
     tasks: tasksByStatus.reduce((acc, t) => ({ ...acc, [t.status]: t._count }), {}),
     agents,

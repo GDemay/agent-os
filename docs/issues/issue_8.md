@@ -67,7 +67,7 @@ export class WorkerAgent extends BaseAgent {
 
   private async executeTask(task: Task): Promise<void> {
     await this.logActivity('task_start', `Starting task: ${task.title}`, task.id);
-    
+
     // Update status to in_progress
     await this.prisma.task.update({
       where: { id: task.id },
@@ -122,7 +122,7 @@ Respond with a JSON object containing the tool calls you want to make:
   private async processResponse(content: string, task: Task): Promise<void> {
     try {
       const parsed = JSON.parse(content);
-      
+
       // Execute tool calls
       if (parsed.actions) {
         for (const action of parsed.actions) {

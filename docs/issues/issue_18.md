@@ -167,7 +167,7 @@ program
     });
 
     console.log(chalk.bold('\n📊 AgentOS Status\n'));
-    
+
     console.log(chalk.bold('Agents:'));
     for (const a of agents) {
       const statusIcon = a.status === 'online' ? '🟢' : a.status === 'busy' ? '🟡' : '⚫';

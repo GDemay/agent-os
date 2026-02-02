@@ -94,8 +94,8 @@ export function createDatabaseTool(prisma: PrismaClient): Tool {
             if (!id) throw new Error('ID required for update');
             return await prisma.message.update({ where: { id }, data: data as any });
           case 'list':
-            return await prisma.message.findMany({ 
-              where: filter as any, 
+            return await prisma.message.findMany({
+              where: filter as any,
               take: 100,
               orderBy: { createdAt: 'desc' }
             });

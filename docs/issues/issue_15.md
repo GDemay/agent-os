@@ -51,7 +51,7 @@ export class HeartbeatScheduler {
   async initialize(): Promise<void> {
     // Load all agents from database
     const agentRecords = await this.prisma.agent.findMany();
-    
+
     for (const record of agentRecords) {
       const agent = this.createAgent(record);
       if (agent) {
