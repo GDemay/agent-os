@@ -1,5 +1,5 @@
-[phases.setup]
-nixPkgs = ["nodejs", "npm"]
+# Let Nixpacks auto-detect Node.js from package.json
+providers = ["node"]
 
 [phases.install]
 cmds = ["npm ci"]
