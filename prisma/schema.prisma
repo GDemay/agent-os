@@ -11,9 +11,14 @@ model Agent {
   id            String    @id @default(uuid())
   name          String
   role          String
+  roleType      String    @default("specialist") @map("role_type") // lead, specialist, intern
+  avatar        String?   // emoji or URL
+  about         String?   // personality/mission description
+  skills        Json?     @default("[]") // array of skill tags
   systemPrompt  String?   @map("system_prompt")
   modelConfig   Json?     @default("{}") @map("model_config")
   status        String    @default("offline")
+  statusReason  String?   @map("status_reason") // what they're currently doing
   lastHeartbeat DateTime? @map("last_heartbeat")
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at")
@@ -34,6 +39,7 @@ model Task {
   description  String?
   status       String    @default("inbox")
   priority     Int       @default(0)
+  tags         Json?     @default("[]") // array of tag strings
   assigneeId   String?   @map("assignee_id")
   createdById  String?   @map("created_by")
   parentTaskId String?   @map("parent_task_id")

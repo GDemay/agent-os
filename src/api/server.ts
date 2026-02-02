@@ -134,7 +134,7 @@ app.get('/api/tasks/:id', async (req: Request, res: Response) => {
 
 app.post('/api/tasks', async (req: Request, res: Response) => {
   try {
-    const { title, description, priority = 0, parentTaskId } = req.body;
+    const { title, description, priority = 0, parentTaskId, tags } = req.body;
 
     if (!title) {
       return res.status(400).json({ error: 'Title is required' });
@@ -147,6 +147,7 @@ app.post('/api/tasks', async (req: Request, res: Response) => {
         priority: Number(priority),
         status: 'inbox',
         parentTaskId: parentTaskId || null,
+        tags: tags || [],
       },
     });
 
@@ -204,7 +205,17 @@ app.delete('/api/tasks/:id', async (req: Request, res: Response) => {
 app.get('/api/agents', async (req: Request, res: Response) => {
   try {
     const agents = await prisma.agent.findMany({
-      include: {
+      select: {
+        id: true,
+        name: true,
+        role: true,
+        roleType: true,
+        avatar: true,
+        about: true,
+        skills: true,
+        status: true,
+        statusReason: true,
+        lastHeartbeat: true,
         tasksAssigned: {
           where: { status: { in: ['assigned', 'in_progress'] } },
           select: { id: true, title: true, status: true },
@@ -233,6 +244,11 @@ app.get('/api/agents/:id', async (req: Request, res: Response) => {
           orderBy: { createdAt: 'desc' },
           take: 20,
         },
+        messagesReceived: {
+          orderBy: { createdAt: 'desc' },
+          take: 20,
+          include: { fromAgent: { select: { id: true, name: true, avatar: true } } },
+        },
       },
     });
 
@@ -244,6 +260,137 @@ app.get('/api/agents/:id', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error fetching agent:', error);
     res.status(500).json({ error: 'Failed to fetch agent' });
+  }
+});
+
+// Get agent timeline (activities)
+app.get('/api/agents/:id/timeline', async (req: Request, res: Response) => {
+  try {
+    const { limit = '50' } = req.query;
+    const activities = await prisma.activity.findMany({
+      where: { agentId: getIdParam(req) },
+      orderBy: { createdAt: 'desc' },
+      take: Number(limit),
+      include: { task: { select: { id: true, title: true } } },
+    });
+    res.json(activities);
+  } catch (error) {
+    console.error('Error fetching timeline:', error);
+    res.status(500).json({ error: 'Failed to fetch timeline' });
+  }
+});
+
+// Get items needing agent's attention
+app.get('/api/agents/:id/attention', async (req: Request, res: Response) => {
+  try {
+    const agentId = getIdParam(req);
+
+    // Get unread messages to this agent
+    const unreadMessages = await prisma.message.findMany({
+      where: { toAgentId: agentId, read: false },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        fromAgent: { select: { id: true, name: true, avatar: true } },
+        task: { select: { id: true, title: true } },
+      },
+    });
+
+    // Get tasks assigned to this agent that are blocked or need action
+    const needsActionTasks = await prisma.task.findMany({
+      where: {
+        assigneeId: agentId,
+        status: { in: ['assigned', 'blocked'] },
+      },
+      orderBy: { priority: 'desc' },
+      take: 10,
+    });
+
+    res.json({
+      messages: unreadMessages,
+      tasks: needsActionTasks,
+      totalCount: unreadMessages.length + needsActionTasks.length,
+    });
+  } catch (error) {
+    console.error('Error fetching attention items:', error);
+    res.status(500).json({ error: 'Failed to fetch attention items' });
+  }
+});
+
+// Send message to agent
+app.post('/api/agents/:id/message', async (req: Request, res: Response) => {
+  try {
+    const { content, fromAgentId, taskId } = req.body;
+
+    if (!content) {
+      return res.status(400).json({ error: 'Content is required' });
+    }
+
+    const message = await prisma.message.create({
+      data: {
+        content,
+        toAgentId: getIdParam(req),
+        fromAgentId: fromAgentId || null,
+        taskId: taskId || null,
+        messageType: 'direct',
+      },
+      include: {
+        toAgent: { select: { id: true, name: true } },
+        fromAgent: { select: { id: true, name: true } },
+      },
+    });
+
+    res.status(201).json(message);
+  } catch (error) {
+    console.error('Error sending message:', error);
+    res.status(500).json({ error: 'Failed to send message' });
+  }
+});
+
+// Update agent status reason
+app.patch('/api/agents/:id/status', async (req: Request, res: Response) => {
+  try {
+    const { status, statusReason } = req.body;
+
+    const agent = await prisma.agent.update({
+      where: { id: getIdParam(req) },
+      data: {
+        status: status || undefined,
+        statusReason: statusReason || undefined,
+        lastHeartbeat: new Date(),
+      },
+    });
+
+    res.json(agent);
+  } catch (error) {
+    console.error('Error updating agent status:', error);
+    res.status(500).json({ error: 'Failed to update agent status' });
+  }
+});
+
+// Broadcast message to all agents
+app.post('/api/broadcast', async (req: Request, res: Response) => {
+  try {
+    const { content, fromAgentId } = req.body;
+
+    if (!content) {
+      return res.status(400).json({ error: 'Content is required' });
+    }
+
+    const agents = await prisma.agent.findMany({ select: { id: true } });
+
+    const messages = await prisma.message.createMany({
+      data: agents.map((a) => ({
+        content,
+        toAgentId: a.id,
+        fromAgentId: fromAgentId || null,
+        messageType: 'broadcast',
+      })),
+    });
+
+    res.status(201).json({ success: true, sentTo: agents.length, messages: messages.count });
+  } catch (error) {
+    console.error('Error broadcasting:', error);
+    res.status(500).json({ error: 'Failed to broadcast' });
   }
 });
 
@@ -339,13 +486,17 @@ if (dashboardDir) {
   app.get('/dashboard', (req: Request, res: Response) => {
     res.sendFile(path.join(dashboardDir, 'index.html'));
   });
+  // Mission Control - new UI
+  app.get('/mission-control', (req: Request, res: Response) => {
+    res.sendFile(path.join(dashboardDir, 'mission-control.html'));
+  });
 } else {
   console.warn('[API] Dashboard directory not found. UI will not be served.');
 }
 
-// Redirect root to dashboard
+// Redirect root to mission control (new default)
 app.get('/', (req: Request, res: Response) => {
-  res.redirect('/dashboard');
+  res.redirect('/mission-control');
 });
 
 // ============================================================================

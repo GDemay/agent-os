@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mission Control - AgentOS</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            cream: {
+              50: '#FEFCF3',
+              100: '#FDF8E6',
+              200: '#F9EECC',
+              300: '#F5E4B3',
+            },
+            olive: {
+              500: '#6B7B3C',
+              600: '#5A6932',
+            },
+            accent: {
+              green: '#4CAF50',
+              orange: '#FF9800',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+    .task-card { transition: all 0.15s ease; }
+    .task-card:hover { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .agent-item { transition: all 0.1s ease; }
+    .agent-item:hover { background: #F5E4B3; }
+    .agent-item.selected { background: #E8DCC0; border-left: 3px solid #6B7B3C; }
+    .skill-tag { font-size: 0.65rem; padding: 2px 8px; border-radius: 12px; background: #F3F0E6; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .status-dot.working { background: #4CAF50; animation: pulse 2s infinite; }
+    .status-dot.idle { background: #9E9E9E; }
+    .status-dot.offline { background: #F44336; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    .role-badge { font-size: 0.55rem; padding: 1px 5px; border-radius: 3px; font-weight: 600; }
+    .role-badge.lead { background: #FFF3E0; color: #E65100; }
+    .role-badge.specialist { background: #E8F5E9; color: #2E7D32; }
+    .role-badge.intern { background: #E3F2FD; color: #1565C0; }
+    .tab-active { border-bottom: 2px solid #6B7B3C; color: #6B7B3C; font-weight: 600; }
+    .column-header { font-size: 0.7rem; letter-spacing: 0.05em; text-transform: uppercase; }
+    .priority-arrow { color: #E65100; }
+    .time-ago { font-size: 0.65rem; color: #9E9E9E; }
+    .modal-overlay { background: rgba(0,0,0,0.4); backdrop-filter: blur(2px); }
+  </style>
+</head>
+<body class="bg-cream-100 text-gray-800 min-h-screen">
+  
+  <!-- Header -->
+  <header class="bg-cream-50 border-b border-cream-300 px-4 py-2 flex items-center justify-between sticky top-0 z-40">
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2">
+        <span class="text-lg">◇</span>
+        <span class="font-semibold text-gray-700">MISSION CONTROL</span>
+        <span class="text-xs bg-cream-200 px-2 py-0.5 rounded text-gray-600">AgentOS</span>
+      </div>
+    </div>
+    
+    <div class="flex items-center gap-6">
+      <div class="flex items-center gap-6 text-sm">
+        <div class="text-center">
+          <div class="text-2xl font-bold text-gray-700" id="stat-agents-active">-</div>
+          <div class="text-xs text-gray-500 uppercase tracking-wide">Agents Active</div>
+        </div>
+        <div class="text-center">
+          <div class="text-2xl font-bold text-gray-700" id="stat-tasks-queue">-</div>
+          <div class="text-xs text-gray-500 uppercase tracking-wide">Tasks in Queue</div>
+        </div>
+      </div>
+      
+      <div class="flex items-center gap-2">
+        <button onclick="showChat()" class="bg-olive-500 hover:bg-olive-600 text-white px-3 py-1.5 rounded text-sm flex items-center gap-1">
+          💬 Chat
+        </button>
+        <button onclick="showBroadcast()" class="bg-cream-200 hover:bg-cream-300 px-3 py-1.5 rounded text-sm flex items-center gap-1">
+          📢 Broadcast
+        </button>
+        <button onclick="showDocs()" class="bg-cream-200 hover:bg-cream-300 px-3 py-1.5 rounded text-sm flex items-center gap-1">
+          📚 Docs
+        </button>
+      </div>
+      
+      <div class="flex items-center gap-3 text-sm border-l border-cream-300 pl-4">
+        <span id="live-clock" class="font-mono text-gray-600">--:--:--</span>
+        <span class="text-xs text-gray-500" id="live-date">---</span>
+        <span class="flex items-center gap-1 text-xs">
+          <span class="status-dot working"></span>
+          <span class="text-green-600">ONLINE</span>
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <div class="flex h-[calc(100vh-52px)]">
+    
+    <!-- Left Panel: Agents -->
+    <aside class="w-56 bg-cream-50 border-r border-cream-300 flex flex-col">
+      <div class="p-3 border-b border-cream-200">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Agents</span>
+          <span class="text-xs bg-cream-200 px-1.5 rounded" id="agent-count">-</span>
+        </div>
+      </div>
+      
+      <!-- All Agents Summary -->
+      <div class="agent-item p-3 cursor-pointer border-b border-cream-200" onclick="selectAllAgents()">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 bg-olive-500 rounded-full flex items-center justify-center text-white text-sm">⚡</div>
+          <div>
+            <div class="font-medium text-sm">All Agents</div>
+            <div class="text-xs text-gray-500"><span id="agents-total">-</span> total • <span id="agents-active" class="text-green-600">- ACTIVE</span></div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Agent List -->
+      <div id="agent-list" class="flex-1 overflow-y-auto">
+        <!-- Agents populated here -->
+      </div>
+    </aside>
+    
+    <!-- Center: Mission Queue (Kanban) -->
+    <main class="flex-1 flex flex-col overflow-hidden">
+      <div class="p-3 border-b border-cream-200 flex items-center justify-between bg-cream-50">
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-semibold text-gray-600 uppercase tracking-wide">● Mission Queue</span>
+        </div>
+        <button onclick="showCreateTaskModal()" class="bg-olive-500 hover:bg-olive-600 text-white px-3 py-1 rounded text-xs">
+          + New Task
+        </button>
+      </div>
+      
+      <div class="flex-1 overflow-x-auto p-3">
+        <div class="flex gap-3 h-full min-w-max">
+          <!-- Inbox Column -->
+          <div class="w-64 bg-cream-50 rounded-lg flex flex-col">
+            <div class="p-2 border-b border-cream-200 flex items-center justify-between">
+              <span class="column-header text-gray-600">● Inbox</span>
+              <span class="text-xs bg-gray-200 px-1.5 rounded" id="count-inbox">0</span>
+            </div>
+            <div id="col-inbox" class="flex-1 overflow-y-auto p-2 space-y-2"></div>
+          </div>
+          
+          <!-- Assigned Column -->
+          <div class="w-64 bg-cream-50 rounded-lg flex flex-col">
+            <div class="p-2 border-b border-cream-200 flex items-center justify-between">
+              <span class="column-header text-blue-600">● Assigned</span>
+              <span class="text-xs bg-blue-100 text-blue-700 px-1.5 rounded" id="count-assigned">0</span>
+            </div>
+            <div id="col-assigned" class="flex-1 overflow-y-auto p-2 space-y-2"></div>
+          </div>
+          
+          <!-- In Progress Column -->
+          <div class="w-64 bg-cream-50 rounded-lg flex flex-col">
+            <div class="p-2 border-b border-cream-200 flex items-center justify-between">
+              <span class="column-header text-yellow-600">● In Progress</span>
+              <span class="text-xs bg-yellow-100 text-yellow-700 px-1.5 rounded" id="count-in_progress">0</span>
+            </div>
+            <div id="col-in_progress" class="flex-1 overflow-y-auto p-2 space-y-2"></div>
+          </div>
+          
+          <!-- Review Column -->
+          <div class="w-64 bg-cream-50 rounded-lg flex flex-col">
+            <div class="p-2 border-b border-cream-200 flex items-center justify-between">
+              <span class="column-header text-purple-600">● Review</span>
+              <span class="text-xs bg-purple-100 text-purple-700 px-1.5 rounded" id="count-review">0</span>
+            </div>
+            <div id="col-review" class="flex-1 overflow-y-auto p-2 space-y-2"></div>
+          </div>
+          
+          <!-- Done Column -->
+          <div class="w-64 bg-cream-50 rounded-lg flex flex-col">
+            <div class="p-2 border-b border-cream-200 flex items-center justify-between">
+              <span class="column-header text-green-600">● Done</span>
+              <span class="text-xs bg-green-100 text-green-700 px-1.5 rounded" id="count-done">0</span>
+            </div>
+            <div id="col-done" class="flex-1 overflow-y-auto p-2 space-y-2"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+    
+    <!-- Right Panel: Agent Profile -->
+    <aside id="agent-profile-panel" class="w-80 bg-cream-50 border-l border-cream-300 flex flex-col hidden">
+      <div class="p-3 border-b border-cream-200 flex items-center justify-between">
+        <span class="text-xs font-semibold text-gray-600 uppercase tracking-wide">● Agent Profile</span>
+        <button onclick="closeAgentProfile()" class="text-gray-400 hover:text-gray-600">×</button>
+      </div>
+      
+      <div id="agent-profile-content" class="flex-1 overflow-y-auto">
+        <!-- Profile content populated here -->
+      </div>
+    </aside>
+  </div>
+
+  <!-- Create Task Modal -->
+  <div id="create-modal" class="hidden fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4">
+    <div class="bg-cream-50 rounded-lg max-w-md w-full border border-cream-300 shadow-lg">
+      <div class="p-4 border-b border-cream-200">
+        <div class="flex justify-between items-center">
+          <h2 class="font-semibold text-gray-700">Create New Task</h2>
+          <button onclick="closeCreateModal()" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+        </div>
+      </div>
+      <form onsubmit="createTask(event)" class="p-4">
+        <div class="mb-3">
+          <label class="block text-xs text-gray-600 mb-1 uppercase tracking-wide">Title *</label>
+          <input type="text" id="new-task-title" required
+                 class="w-full bg-white rounded px-3 py-2 text-gray-800 border border-cream-300 focus:border-olive-500 focus:outline-none text-sm">
+        </div>
+        <div class="mb-3">
+          <label class="block text-xs text-gray-600 mb-1 uppercase tracking-wide">Description</label>
+          <textarea id="new-task-desc" rows="3"
+                    class="w-full bg-white rounded px-3 py-2 text-gray-800 border border-cream-300 focus:border-olive-500 focus:outline-none text-sm"></textarea>
+        </div>
+        <div class="mb-3">
+          <label class="block text-xs text-gray-600 mb-1 uppercase tracking-wide">Priority</label>
+          <select id="new-task-priority"
+                  class="w-full bg-white rounded px-3 py-2 text-gray-800 border border-cream-300 text-sm">
+            <option value="0">Normal</option>
+            <option value="5">Medium</option>
+            <option value="10">High</option>
+          </select>
+        </div>
+        <div class="mb-4">
+          <label class="block text-xs text-gray-600 mb-1 uppercase tracking-wide">Tags (comma separated)</label>
+          <input type="text" id="new-task-tags" placeholder="feature, api, urgent"
+                 class="w-full bg-white rounded px-3 py-2 text-gray-800 border border-cream-300 focus:border-olive-500 focus:outline-none text-sm">
+        </div>
+        <div class="flex gap-2 justify-end">
+          <button type="button" onclick="closeCreateModal()" class="px-4 py-2 bg-cream-200 rounded hover:bg-cream-300 text-sm">
+            Cancel
+          </button>
+          <button type="submit" class="px-4 py-2 bg-olive-500 text-white rounded hover:bg-olive-600 text-sm">
+            Create Task
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Broadcast Modal -->
+  <div id="broadcast-modal" class="hidden fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4">
+    <div class="bg-cream-50 rounded-lg max-w-md w-full border border-cream-300 shadow-lg">
+      <div class="p-4 border-b border-cream-200">
+        <div class="flex justify-between items-center">
+          <h2 class="font-semibold text-gray-700">📢 Broadcast to All Agents</h2>
+          <button onclick="closeBroadcastModal()" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+        </div>
+      </div>
+      <form onsubmit="sendBroadcast(event)" class="p-4">
+        <div class="mb-4">
+          <label class="block text-xs text-gray-600 mb-1 uppercase tracking-wide">Message</label>
+          <textarea id="broadcast-content" rows="4" required
+                    class="w-full bg-white rounded px-3 py-2 text-gray-800 border border-cream-300 focus:border-olive-500 focus:outline-none text-sm"
+                    placeholder="Enter message to broadcast to all agents..."></textarea>
+        </div>
+        <div class="flex gap-2 justify-end">
+          <button type="button" onclick="closeBroadcastModal()" class="px-4 py-2 bg-cream-200 rounded hover:bg-cream-300 text-sm">
+            Cancel
+          </button>
+          <button type="submit" class="px-4 py-2 bg-olive-500 text-white rounded hover:bg-olive-600 text-sm">
+            Send Broadcast
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = window.location.origin + '/api';
+    let selectedAgentId = null;
+    let refreshInterval;
+    let agents = [];
+    let tasks = [];
+
+    // ========================================================================
+    // Clock
+    // ========================================================================
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('live-clock').textContent = now.toLocaleTimeString('en-US', { hour12: false });
+      document.getElementById('live-date').textContent = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase();
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // ========================================================================
+    // Data Loading
+    // ========================================================================
+    async function loadStats() {
+      try {
+        const res = await fetch(`${API_BASE}/stats`);
+        const data = await res.json();
+        
+        const activeAgents = data.agents?.filter(a => a.status === 'busy' || a.status === 'idle' || a.status === 'online').length || 0;
+        const totalTasks = Object.values(data.tasks || {}).reduce((a, b) => a + b, 0);
+        
+        document.getElementById('stat-agents-active').textContent = activeAgents;
+        document.getElementById('stat-tasks-queue').textContent = totalTasks;
+      } catch (error) {
+        console.error('Error loading stats:', error);
+      }
+    }
+
+    async function loadAgents() {
+      try {
+        const res = await fetch(`${API_BASE}/agents`);
+        agents = await res.json();
+
+        document.getElementById('agent-count').textContent = agents.length;
+        document.getElementById('agents-total').textContent = agents.length;
+        
+        const activeCount = agents.filter(a => a.status === 'busy' || a.status === 'idle' || a.status === 'online').length;
+        document.getElementById('agents-active').textContent = `${activeCount} ACTIVE`;
+
+        const container = document.getElementById('agent-list');
+        container.innerHTML = agents.map(a => {
+          const statusClass = a.status === 'busy' ? 'working' : (a.status === 'idle' || a.status === 'online') ? 'working' : 'offline';
+          const roleTypeClass = a.roleType === 'lead' ? 'lead' : a.roleType === 'intern' ? 'intern' : 'specialist';
+          const roleTypeLabel = a.roleType === 'lead' ? 'LEAD' : a.roleType === 'intern' ? 'INT' : 'SPC';
+          const taskCount = a.tasksAssigned?.length || 0;
+          const isSelected = a.id === selectedAgentId ? 'selected' : '';
+          
+          return `
+            <div class="agent-item p-3 cursor-pointer border-b border-cream-200 ${isSelected}" onclick="selectAgent('${a.id}')">
+              <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-cream-200 rounded-full flex items-center justify-center text-lg">${a.avatar || '🤖'}</div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-1">
+                    <span class="font-medium text-sm truncate">${a.name}</span>
+                    <span class="role-badge ${roleTypeClass}">${roleTypeLabel}</span>
+                  </div>
+                  <div class="text-xs text-gray-500 truncate">${a.role}</div>
+                </div>
+                <div class="flex items-center gap-1">
+                  <span class="status-dot ${statusClass}"></span>
+                  <span class="text-xs text-gray-500">${a.status === 'busy' ? 'WORKING' : a.status?.toUpperCase() || 'OFFLINE'}</span>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (error) {
+        console.error('Error loading agents:', error);
+      }
+    }
+
+    async function loadTasks() {
+      try {
+        const res = await fetch(`${API_BASE}/tasks?limit=100`);
+        tasks = await res.json();
+
+        const columns = { inbox: [], assigned: [], in_progress: [], review: [], done: [] };
+        tasks.forEach(t => {
+          if (columns[t.status]) columns[t.status].push(t);
+        });
+
+        for (const [status, items] of Object.entries(columns)) {
+          const col = document.getElementById(`col-${status}`);
+          const countEl = document.getElementById(`count-${status}`);
+          
+          if (countEl) countEl.textContent = items.length;
+          
+          if (col) {
+            if (items.length === 0) {
+              col.innerHTML = '<div class="text-gray-400 text-xs text-center py-4">No tasks</div>';
+            } else {
+              col.innerHTML = items.slice(0, 15).map(t => renderTaskCard(t)).join('');
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error loading tasks:', error);
+      }
+    }
+
+    function renderTaskCard(task) {
+      const priorityIcon = task.priority >= 8 ? '<span class="priority-arrow">↑</span>' : '';
+      const assigneeAvatar = task.assignee?.avatar || (task.assignee?.name ? '👤' : '');
+      const assigneeName = task.assignee?.name || '';
+      const timeAgo = formatTimeAgo(task.createdAt);
+      const tags = Array.isArray(task.tags) ? task.tags : [];
+      
+      return `
+        <div class="task-card bg-white rounded p-2.5 cursor-pointer border border-cream-200 shadow-sm" onclick="showTask('${task.id}')">
+          <div class="flex items-start gap-1 mb-1">
+            ${priorityIcon}
+            <span class="font-medium text-xs leading-tight flex-1">${task.title.substring(0, 50)}${task.title.length > 50 ? '...' : ''}</span>
+          </div>
+          ${task.description ? `<div class="text-xs text-gray-500 mb-2 line-clamp-2">${task.description.substring(0, 80)}...</div>` : ''}
+          <div class="flex items-center justify-between text-xs">
+            ${assigneeName ? `
+              <div class="flex items-center gap-1">
+                <span>${assigneeAvatar}</span>
+                <span class="text-gray-600">${assigneeName}</span>
+              </div>
+            ` : '<span></span>'}
+            <span class="time-ago">${timeAgo}</span>
+          </div>
+          ${tags.length > 0 ? `
+            <div class="flex flex-wrap gap-1 mt-2">
+              ${tags.slice(0, 3).map(t => `<span class="skill-tag">${t}</span>`).join('')}
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    function formatTimeAgo(dateStr) {
+      if (!dateStr) return '';
+      const date = new Date(dateStr);
+      const now = new Date();
+      const diffMs = now - date;
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMs / 3600000);
+      const diffDays = Math.floor(diffMs / 86400000);
+      
+      if (diffMins < 1) return 'just now';
+      if (diffMins < 60) return `${diffMins}m ago`;
+      if (diffHours < 24) return `${diffHours}h ago`;
+      return `${diffDays}d ago`;
+    }
+
+    // ========================================================================
+    // Agent Profile
+    // ========================================================================
+    function selectAllAgents() {
+      selectedAgentId = null;
+      document.getElementById('agent-profile-panel').classList.add('hidden');
+      loadAgents();
+    }
+
+    async function selectAgent(agentId) {
+      selectedAgentId = agentId;
+      loadAgents(); // Refresh to show selection
+      
+      try {
+        const res = await fetch(`${API_BASE}/agents/${agentId}`);
+        const agent = await res.json();
+        
+        const attentionRes = await fetch(`${API_BASE}/agents/${agentId}/attention`);
+        const attention = await attentionRes.json();
+        
+        renderAgentProfile(agent, attention);
+        document.getElementById('agent-profile-panel').classList.remove('hidden');
+      } catch (error) {
+        console.error('Error loading agent:', error);
+      }
+    }
+
+    function renderAgentProfile(agent, attention) {
+      const roleTypeClass = agent.roleType === 'lead' ? 'lead' : agent.roleType === 'intern' ? 'intern' : 'specialist';
+      const roleTypeLabel = agent.roleType === 'lead' ? 'Lead' : agent.roleType === 'intern' ? 'Intern' : 'Specialist';
+      const statusClass = agent.status === 'busy' ? 'working' : (agent.status === 'idle' || agent.status === 'online') ? 'working' : 'offline';
+      const statusLabel = agent.status === 'busy' ? 'WORKING' : agent.status?.toUpperCase() || 'OFFLINE';
+      const skills = Array.isArray(agent.skills) ? agent.skills : [];
+      const lastHeartbeat = agent.lastHeartbeat ? formatTimeAgo(agent.lastHeartbeat) : 'never';
+      
+      document.getElementById('agent-profile-content').innerHTML = `
+        <div class="p-4">
+          <!-- Avatar & Name -->
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-16 h-16 bg-cream-200 rounded-lg flex items-center justify-center text-3xl">${agent.avatar || '🤖'}</div>
+            <div>
+              <div class="font-semibold text-lg">${agent.name}</div>
+              <div class="text-sm text-gray-600">${agent.role}</div>
+              <span class="role-badge ${roleTypeClass} mt-1 inline-block">${roleTypeLabel}</span>
+            </div>
+          </div>
+          
+          <!-- Status Button -->
+          <button class="w-full py-2 rounded-lg text-sm font-medium mb-4 flex items-center justify-center gap-2 ${statusClass === 'working' ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-700'}">
+            <span class="status-dot ${statusClass}"></span>
+            ${statusLabel}
+          </button>
+          
+          <!-- Status Reason -->
+          ${agent.statusReason ? `
+            <div class="mb-4 p-3 bg-cream-100 rounded-lg">
+              <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">Status Reason:</div>
+              <div class="text-sm text-gray-700">${agent.statusReason}</div>
+              <div class="text-xs text-gray-400 mt-1">Since ${lastHeartbeat}</div>
+            </div>
+          ` : ''}
+          
+          <!-- About -->
+          <div class="mb-4">
+            <div class="text-xs text-gray-500 uppercase tracking-wide mb-2">About</div>
+            <div class="text-sm text-gray-700 leading-relaxed">${agent.about || 'No description available.'}</div>
+          </div>
+          
+          <!-- Skills -->
+          ${skills.length > 0 ? `
+            <div class="mb-4">
+              <div class="text-xs text-gray-500 uppercase tracking-wide mb-2">Skills</div>
+              <div class="flex flex-wrap gap-1">
+                ${skills.map(s => `<span class="skill-tag">${s}</span>`).join('')}
+              </div>
+            </div>
+          ` : ''}
+          
+          <!-- Tabs -->
+          <div class="border-b border-cream-200 mb-3">
+            <div class="flex gap-4 text-sm">
+              <button class="py-2 tab-active" onclick="showProfileTab('attention', '${agent.id}')">
+                🔔 Attention ${attention.totalCount > 0 ? `<span class="bg-red-500 text-white px-1.5 rounded-full text-xs">${attention.totalCount}</span>` : ''}
+              </button>
+              <button class="py-2 text-gray-500 hover:text-gray-700" onclick="showProfileTab('timeline', '${agent.id}')">📅 Timeline</button>
+              <button class="py-2 text-gray-500 hover:text-gray-700" onclick="showProfileTab('messages', '${agent.id}')">💬 Messages</button>
+            </div>
+          </div>
+          
+          <!-- Tab Content -->
+          <div id="profile-tab-content">
+            <div class="text-xs text-gray-500 mb-2">Tasks & mentions needing ${agent.name}'s attention</div>
+            ${attention.tasks?.length > 0 ? attention.tasks.map(t => `
+              <div class="bg-cream-100 rounded p-2 mb-2 cursor-pointer hover:bg-cream-200" onclick="showTask('${t.id}')">
+                <div class="text-sm font-medium">${t.title}</div>
+                <div class="text-xs text-gray-500">${t.status}</div>
+              </div>
+            `).join('') : '<div class="text-sm text-gray-400">No items need attention</div>'}
+          </div>
+          
+          <!-- Send Message -->
+          <div class="mt-4 pt-4 border-t border-cream-200">
+            <div class="text-xs text-gray-500 uppercase tracking-wide mb-2">Send Message to ${agent.name}</div>
+            <div class="flex gap-2">
+              <input type="text" id="agent-message-input" placeholder="Message ${agent.name}... (@ to mention)"
+                     class="flex-1 bg-white rounded px-3 py-2 text-sm border border-cream-300 focus:border-olive-500 focus:outline-none">
+              <button onclick="sendAgentMessage('${agent.id}')" class="bg-olive-500 text-white px-3 py-2 rounded text-sm hover:bg-olive-600">
+                Send
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function closeAgentProfile() {
+      selectedAgentId = null;
+      document.getElementById('agent-profile-panel').classList.add('hidden');
+      loadAgents();
+    }
+
+    async function sendAgentMessage(agentId) {
+      const input = document.getElementById('agent-message-input');
+      const content = input.value.trim();
+      if (!content) return;
+      
+      try {
+        await fetch(`${API_BASE}/agents/${agentId}/message`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content })
+        });
+        input.value = '';
+        alert('Message sent!');
+      } catch (error) {
+        console.error('Error sending message:', error);
+        alert('Failed to send message');
+      }
+    }
+
+    // ========================================================================
+    // Task Modal
+    // ========================================================================
+    async function showTask(taskId) {
+      // Simple alert for now - can expand later
+      try {
+        const res = await fetch(`${API_BASE}/tasks/${taskId}`);
+        const task = await res.json();
+        alert(`Task: ${task.title}\n\nDescription: ${task.description || 'None'}\nStatus: ${task.status}\nAssignee: ${task.assignee?.name || 'Unassigned'}`);
+      } catch (error) {
+        console.error('Error loading task:', error);
+      }
+    }
+
+    // ========================================================================
+    // Create Task
+    // ========================================================================
+    function showCreateTaskModal() {
+      document.getElementById('create-modal').classList.remove('hidden');
+      clearInterval(refreshInterval);
+    }
+
+    function closeCreateModal() {
+      document.getElementById('create-modal').classList.add('hidden');
+      startAutoRefresh();
+    }
+
+    async function createTask(event) {
+      event.preventDefault();
+      
+      const title = document.getElementById('new-task-title').value;
+      const description = document.getElementById('new-task-desc').value;
+      const priority = document.getElementById('new-task-priority').value;
+      const tagsInput = document.getElementById('new-task-tags').value;
+      const tags = tagsInput ? tagsInput.split(',').map(t => t.trim()).filter(t => t) : [];
+      
+      try {
+        await fetch(`${API_BASE}/tasks`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, description, priority: Number(priority), tags })
+        });
+        
+        closeCreateModal();
+        document.getElementById('new-task-title').value = '';
+        document.getElementById('new-task-desc').value = '';
+        document.getElementById('new-task-priority').value = '0';
+        document.getElementById('new-task-tags').value = '';
+        refresh();
+      } catch (error) {
+        console.error('Error creating task:', error);
+        alert('Failed to create task');
+      }
+    }
+
+    // ========================================================================
+    // Broadcast
+    // ========================================================================
+    function showBroadcast() {
+      document.getElementById('broadcast-modal').classList.remove('hidden');
+      clearInterval(refreshInterval);
+    }
+
+    function closeBroadcastModal() {
+      document.getElementById('broadcast-modal').classList.add('hidden');
+      startAutoRefresh();
+    }
+
+    async function sendBroadcast(event) {
+      event.preventDefault();
+      
+      const content = document.getElementById('broadcast-content').value;
+      
+      try {
+        await fetch(`${API_BASE}/broadcast`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content })
+        });
+        
+        closeBroadcastModal();
+        document.getElementById('broadcast-content').value = '';
+        alert('Broadcast sent to all agents!');
+      } catch (error) {
+        console.error('Error broadcasting:', error);
+        alert('Failed to send broadcast');
+      }
+    }
+
+    // ========================================================================
+    // Other
+    // ========================================================================
+    function showChat() {
+      alert('Chat feature coming soon!');
+    }
+
+    function showDocs() {
+      window.open('https://github.com/GDemay/agent-os', '_blank');
+    }
+
+    // ========================================================================
+    // Refresh
+    // ========================================================================
+    function refresh() {
+      loadStats();
+      loadAgents();
+      loadTasks();
+    }
+
+    function startAutoRefresh() {
+      refreshInterval = setInterval(refresh, 10000);
+    }
+
+    // Initial load
+    refresh();
+    startAutoRefresh();
+  </script>
+</body>
+</html>
