@@ -15,12 +15,12 @@
 ## GitHub Issues (PoC Backlog)
 
 ### Foundation (Start Here)
-- [#3](https://github.com/GDemay/agent-os/issues/3) - Initialize Node.js + TypeScript project
-- [#4](https://github.com/GDemay/agent-os/issues/4) - Set up Prisma with PostgreSQL schema
-- [#21](https://github.com/GDemay/agent-os/issues/21) - Create seed data for agents
+- [x] [#3](https://github.com/GDemay/agent-os/issues/3) - Initialize Node.js + TypeScript project (Completed)
+- [x] [#4](https://github.com/GDemay/agent-os/issues/4) - Set up Prisma with PostgreSQL schema (Completed)
+- [x] [#21](https://github.com/GDemay/agent-os/issues/21) - Create seed data for agents (Completed)
 
 ### LLM Layer
-- [#11](https://github.com/GDemay/agent-os/issues/11) - Create LLM provider abstraction layer (DeepSeek + OpenCode)
+- [x] [#11](https://github.com/GDemay/agent-os/issues/11) - Create LLM provider abstraction layer (DeepSeek + OpenCode) (Completed)
 
 ### Agent System
 - [#6](https://github.com/GDemay/agent-os/issues/6) - Create BaseAgent class with tool system

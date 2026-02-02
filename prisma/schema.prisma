@@ -1,0 +1,102 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../node_modules/@prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Agent {
+  id            String    @id @default(uuid())
+  name          String
+  role          String
+  systemPrompt  String?   @map("system_prompt")
+  modelConfig   Json?     @default("{}") @map("model_config")
+  status        String    @default("offline")
+  lastHeartbeat DateTime? @map("last_heartbeat")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  tasksAssigned    Task[]         @relation("Assignee")
+  tasksCreated     Task[]         @relation("Creator")
+  messagesSent     Message[]      @relation("Sender")
+  messagesReceived Message[]      @relation("Receiver")
+  activities       Activity[]
+  sessions         AgentSession[]
+
+  @@map("agents")
+}
+
+model Task {
+  id           String    @id @default(uuid())
+  title        String
+  description  String?
+  status       String    @default("inbox")
+  priority     Int       @default(0)
+  assigneeId   String?   @map("assignee_id")
+  createdById  String?   @map("created_by")
+  parentTaskId String?   @map("parent_task_id")
+  branchName   String?   @map("branch_name")
+  result       String?
+  error        String?
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at")
+  startedAt    DateTime? @map("started_at")
+  completedAt  DateTime? @map("completed_at")
+
+  assignee   Agent?    @relation("Assignee", fields: [assigneeId], references: [id])
+  createdBy  Agent?    @relation("Creator", fields: [createdById], references: [id])
+  parentTask Task?     @relation("Subtasks", fields: [parentTaskId], references: [id])
+  subtasks   Task[]    @relation("Subtasks")
+  messages   Message[]
+  activities Activity[]
+
+  @@map("tasks")
+}
+
+model Message {
+  id          String   @id @default(uuid())
+  taskId      String?  @map("task_id")
+  fromAgentId String?  @map("from_agent_id")
+  toAgentId   String?  @map("to_agent_id")
+  content     String
+  messageType String   @default("comment") @map("message_type")
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  task      Task?  @relation(fields: [taskId], references: [id])
+  fromAgent Agent? @relation("Sender", fields: [fromAgentId], references: [id])
+  toAgent   Agent? @relation("Receiver", fields: [toAgentId], references: [id])
+
+  @@map("messages")
+}
+
+model Activity {
+  id        String   @id @default(uuid())
+  eventType String   @map("event_type")
+  agentId   String?  @map("agent_id")
+  taskId    String?  @map("task_id")
+  message   String?
+  metadata  Json?    @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  agent Agent? @relation(fields: [agentId], references: [id])
+  task  Task?  @relation(fields: [taskId], references: [id])
+
+  @@map("activities")
+}
+
+model AgentSession {
+  id        String   @id @default(uuid())
+  agentId   String   @map("agent_id")
+  pid       Int?
+  hostname  String?
+  startedAt DateTime @default(now()) @map("started_at")
+  endedAt   DateTime? @map("ended_at")
+  status    String   @default("active")
+
+  agent Agent @relation(fields: [agentId], references: [id])
+
+  @@map("agent_sessions")
+}
