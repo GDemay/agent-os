@@ -30,10 +30,30 @@ export interface GitArgs {
 /**
  * Execute a git command
  */
-async function git(command: string, cwd?: string): Promise<string> {
+async function git(command: string, cwd?: string, useAuth = false): Promise<string> {
   try {
+    const env = { ...process.env };
+    
+    // For push/pull operations with GitHub token
+    if (useAuth && process.env.GITHUB_TOKEN && process.env.GITHUB_USERNAME) {
+      // Disable password prompts
+      env.GIT_ASKPASS = 'echo';
+      env.GIT_TERMINAL_PROMPT = '0';
+      
+      // Configure credential helper to use the token
+      try {
+        await execAsync(
+          `git config --local credential.helper '!f() { echo "username=${process.env.GITHUB_USERNAME}"; echo "password=${process.env.GITHUB_TOKEN}"; }; f'`,
+          { cwd: cwd || process.cwd() }
+        );
+      } catch (credError) {
+        console.warn('Failed to setup git credentials:', credError);
+      }
+    }
+    
     const { stdout } = await execAsync(`git ${command}`, {
       cwd: cwd || process.cwd(),
+      env,
       maxBuffer: 1024 * 1024 * 5, // 5MB for large diffs
     });
     return stdout.trim();
@@ -187,11 +207,11 @@ export const GitTool: Tool = {
           const currentBranch = await git('branch --show-current');
           const targetBranch = branch || currentBranch;
 
-          // Set upstream if pushing for the first time
+          // Set upstream if pushing for the first time - use auth for GitHub
           try {
-            await git(`push ${remote} ${targetBranch}`);
+            await git(`push ${remote} ${targetBranch}`, undefined, true);
           } catch {
-            await git(`push -u ${remote} ${targetBranch}`);
+            await git(`push -u ${remote} ${targetBranch}`, undefined, true);
           }
 
           return { success: true, action: 'pushed', remote, branch: targetBranch };
@@ -199,8 +219,9 @@ export const GitTool: Tool = {
 
         case 'pull': {
           const currentBranch = await git('branch --show-current');
-          await git(`pull ${remote} ${branch || currentBranch}`);
-          return { success: true, action: 'pulled', remote, branch: branch || currentBranch };
+          const targetBranch = branch || currentBranch;
+          await git(`pull ${remote} ${targetBranch}`, undefined, true);
+          return { success: true, action: 'pulled', remote, branch: targetBranch };
         }
 
         case 'merge': {
