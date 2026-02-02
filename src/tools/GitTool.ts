@@ -61,11 +61,24 @@ async function git(command: string, cwd?: string): Promise<string> {
  */
 export const GitTool: Tool = {
   name: 'git',
-  description: 'Git operations: status, branch, checkout, add, commit, push, pull, merge, diff, log, stash',
+  description:
+    'Git operations: status, branch, checkout, add, commit, push, pull, merge, diff, log, stash',
   parameters: {
     action: {
       type: 'string',
-      enum: ['status', 'branch', 'checkout', 'add', 'commit', 'push', 'pull', 'merge', 'diff', 'log', 'stash'],
+      enum: [
+        'status',
+        'branch',
+        'checkout',
+        'add',
+        'commit',
+        'push',
+        'pull',
+        'merge',
+        'diff',
+        'log',
+        'stash',
+      ],
     },
     branch: { type: 'string', description: 'Branch name (for branch/checkout/merge)' },
     message: { type: 'string', description: 'Commit message (for commit) or stash message' },
@@ -226,26 +239,30 @@ export const GitTool: Tool = {
         }
 
         case 'diff': {
-          const diffOutput = branch
-            ? await git(`diff ${branch}`)
-            : await git('diff HEAD');
+          const diffOutput = branch ? await git(`diff ${branch}`) : await git('diff HEAD');
 
           // Parse diff for summary
           const files = diffOutput.match(/diff --git a\/.+ b\/.+/g) || [];
 
           return {
             success: true,
-            diff: diffOutput.length > 10000 ? diffOutput.substring(0, 10000) + '\n... (truncated)' : diffOutput,
+            diff:
+              diffOutput.length > 10000
+                ? diffOutput.substring(0, 10000) + '\n... (truncated)'
+                : diffOutput,
             filesChanged: files.length,
           };
         }
 
         case 'log': {
           const logOutput = await git(`log --oneline -n ${count}`);
-          const commits = logOutput.split('\n').filter(Boolean).map((line) => {
-            const [hash, ...rest] = line.split(' ');
-            return { hash, message: rest.join(' ') };
-          });
+          const commits = logOutput
+            .split('\n')
+            .filter(Boolean)
+            .map((line) => {
+              const [hash, ...rest] = line.split(' ');
+              return { hash, message: rest.join(' ') };
+            });
 
           return { success: true, commits, count: commits.length };
         }

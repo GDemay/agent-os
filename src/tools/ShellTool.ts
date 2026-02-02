@@ -181,7 +181,7 @@ export const ShellTool: Tool = {
 export async function execStream(
   command: string,
   args: string[],
-  options: { cwd?: string; onStdout?: (data: string) => void; onStderr?: (data: string) => void }
+  options: { cwd?: string; onStdout?: (data: string) => void; onStderr?: (data: string) => void },
 ): Promise<{ code: number | null; signal: string | null }> {
   return new Promise((resolve, reject) => {
     const proc = spawn(command, args, {

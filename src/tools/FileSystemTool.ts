@@ -46,7 +46,13 @@ export const FileSystemTool: Tool = {
   },
 
   async execute(args: Record<string, unknown>): Promise<unknown> {
-    const { action, path: filePath, content, pattern, recursive } = args as unknown as FileSystemArgs;
+    const {
+      action,
+      path: filePath,
+      content,
+      pattern,
+      recursive,
+    } = args as unknown as FileSystemArgs;
     const projectRoot = process.cwd();
     const fullPath = path.resolve(projectRoot, filePath);
 
@@ -185,12 +191,7 @@ export const FileSystemTool: Tool = {
               const itemPath = path.join(relativePath, item.name);
               // Simple glob matching (supports * and ?)
               const regex = new RegExp(
-                '^' +
-                  pattern
-                    .replace(/\./g, '\\.')
-                    .replace(/\*/g, '.*')
-                    .replace(/\?/g, '.') +
-                  '$'
+                '^' + pattern.replace(/\./g, '\\.').replace(/\*/g, '.*').replace(/\?/g, '.') + '$',
               );
               if (regex.test(item.name)) {
                 matches.push(itemPath);

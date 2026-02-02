@@ -58,7 +58,15 @@ export function createDatabaseTool(prisma: PrismaClient): Tool {
       try {
         switch (entity) {
           case 'task':
-            return await handleTask(prisma, action, { id, data, filter, orderBy, take, skip, include });
+            return await handleTask(prisma, action, {
+              id,
+              data,
+              filter,
+              orderBy,
+              take,
+              skip,
+              include,
+            });
 
           case 'message':
             return await handleMessage(prisma, action, { id, data, filter, orderBy, take, skip });
@@ -98,7 +106,7 @@ async function handleTask(
     take?: number;
     skip?: number;
     include?: Record<string, boolean>;
-  }
+  },
 ): Promise<unknown> {
   const { id, data, filter, orderBy, take, skip, include } = options;
 
@@ -115,7 +123,7 @@ async function handleTask(
       if (!id) throw new Error('ID required for read');
       const task = await prisma.task.findUnique({
         where: { id },
-        include: include as Prisma.TaskInclude || { subtasks: true, messages: true },
+        include: (include as Prisma.TaskInclude) || { subtasks: true, messages: true },
       });
       if (!task) return { success: false, error: 'Task not found' };
       return { success: true, task };
@@ -137,7 +145,7 @@ async function handleTask(
     case 'list':
       const tasks = await prisma.task.findMany({
         where: filter as Prisma.TaskWhereInput,
-        orderBy: orderBy as Prisma.TaskOrderByWithRelationInput || { createdAt: 'desc' },
+        orderBy: (orderBy as Prisma.TaskOrderByWithRelationInput) || { createdAt: 'desc' },
         take,
         skip,
         include: include as Prisma.TaskInclude,
@@ -168,7 +176,7 @@ async function handleMessage(
     orderBy?: Record<string, 'asc' | 'desc'>;
     take?: number;
     skip?: number;
-  }
+  },
 ): Promise<unknown> {
   const { id, data, filter, orderBy, take, skip } = options;
 
@@ -203,7 +211,7 @@ async function handleMessage(
     case 'list':
       const messages = await prisma.message.findMany({
         where: filter as Prisma.MessageWhereInput,
-        orderBy: orderBy as Prisma.MessageOrderByWithRelationInput || { createdAt: 'desc' },
+        orderBy: (orderBy as Prisma.MessageOrderByWithRelationInput) || { createdAt: 'desc' },
         take: Math.min(take || 100, 100),
         skip,
       });
@@ -233,7 +241,7 @@ async function handleAgent(
     orderBy?: Record<string, 'asc' | 'desc'>;
     take?: number;
     skip?: number;
-  }
+  },
 ): Promise<unknown> {
   const { id, data, filter, orderBy, take, skip } = options;
 
@@ -268,7 +276,7 @@ async function handleAgent(
     case 'list':
       const agents = await prisma.agent.findMany({
         where: filter as Prisma.AgentWhereInput,
-        orderBy: orderBy as Prisma.AgentOrderByWithRelationInput || { createdAt: 'desc' },
+        orderBy: (orderBy as Prisma.AgentOrderByWithRelationInput) || { createdAt: 'desc' },
         take,
         skip,
       });
@@ -298,7 +306,7 @@ async function handleActivity(
     orderBy?: Record<string, 'asc' | 'desc'>;
     take?: number;
     skip?: number;
-  }
+  },
 ): Promise<unknown> {
   const { id, data, filter, orderBy, take, skip } = options;
 
@@ -319,7 +327,7 @@ async function handleActivity(
     case 'list':
       const activities = await prisma.activity.findMany({
         where: filter as Prisma.ActivityWhereInput,
-        orderBy: orderBy as Prisma.ActivityOrderByWithRelationInput || { createdAt: 'desc' },
+        orderBy: (orderBy as Prisma.ActivityOrderByWithRelationInput) || { createdAt: 'desc' },
         take: Math.min(take || 100, 100),
         skip,
       });
