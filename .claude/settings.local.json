@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push)",
+      "Bash(brew install:*)",
+      "Bash(bash)",
+      "Bash(bash:*)",
+      "Bash(cargo install:*)",
+      "Bash(~/.local/bin/nixpacks plan:*)",
+      "Bash(~/.local/bin/nixpacks build:*)"
+    ]
+  }
+}
