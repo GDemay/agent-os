@@ -33,24 +33,24 @@ export interface GitArgs {
 async function git(command: string, cwd?: string, useAuth = false): Promise<string> {
   try {
     const env = { ...process.env };
-    
+
     // For push/pull operations with GitHub token
     if (useAuth && process.env.GITHUB_TOKEN && process.env.GITHUB_USERNAME) {
       // Disable password prompts
       env.GIT_ASKPASS = 'echo';
       env.GIT_TERMINAL_PROMPT = '0';
-      
+
       // Configure credential helper to use the token
       try {
         await execAsync(
           `git config --local credential.helper '!f() { echo "username=${process.env.GITHUB_USERNAME}"; echo "password=${process.env.GITHUB_TOKEN}"; }; f'`,
-          { cwd: cwd || process.cwd() }
+          { cwd: cwd || process.cwd() },
         );
       } catch (credError) {
         console.warn('Failed to setup git credentials:', credError);
       }
     }
-    
+
     const { stdout } = await execAsync(`git ${command}`, {
       cwd: cwd || process.cwd(),
       env,
