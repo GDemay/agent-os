@@ -80,6 +80,25 @@ export class WorkerAgent extends BaseAgent {
       data: { branchName },
     });
 
+    // Create git branch using git tool
+    const gitTool = this.tools.get('git');
+    if (gitTool) {
+      try {
+        // Create and checkout feature branch
+        await gitTool.execute({ action: 'branch', branch: branchName });
+        await gitTool.execute({ action: 'checkout', branch: branchName });
+        await this.logActivity('git', `Created and checked out branch: ${branchName}`, task.id);
+      } catch (error) {
+        // Branch may already exist, try checkout only
+        try {
+          await gitTool.execute({ action: 'checkout', branch: branchName });
+          await this.logActivity('git', `Checked out existing branch: ${branchName}`, task.id);
+        } catch (checkoutError) {
+          await this.logActivity('warning', `Git branch setup failed: ${checkoutError}`, task.id);
+        }
+      }
+    }
+
     // Execute the work loop
     await this.workLoop(task);
   }
@@ -199,6 +218,22 @@ Respond with a JSON object:
 
       // Update task based on status
       if (parsed.status === 'complete') {
+        // Commit and push changes before marking complete
+        const gitTool = this.tools.get('git');
+        if (gitTool && task.branchName) {
+          try {
+            await gitTool.execute({ action: 'add', files: ['.'] });
+            await gitTool.execute({
+              action: 'commit',
+              message: `feat(${task.branchName}): ${task.title}\n\n${parsed.summary || 'Task completed by Worker agent'}`,
+            });
+            await gitTool.execute({ action: 'push', remote: 'origin', branch: task.branchName });
+            await this.logActivity('git', `Committed and pushed to ${task.branchName}`, task.id);
+          } catch (gitError) {
+            await this.logActivity('warning', `Git commit/push failed: ${gitError}`, task.id);
+          }
+        }
+
         await this.prisma.task.update({
           where: { id: task.id },
           data: {

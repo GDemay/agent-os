@@ -199,12 +199,19 @@ Respond with JSON:
 
     if (gitTool) {
       try {
+        // Checkout main first
+        await gitTool.execute({ action: 'checkout', branch: 'master' });
+        // Pull latest
+        await gitTool.execute({ action: 'pull' });
+        // Merge feature branch
         await gitTool.execute({
           action: 'merge',
           branch: task.branchName,
         });
-        await this.logActivity('git_merge', `Merged branch ${task.branchName} to main`, task.id);
-        await this.sendMessage(`🔀 Merged ${task.branchName} to main`, undefined, task.id);
+        // Push merged changes
+        await gitTool.execute({ action: 'push' });
+        await this.logActivity('git_merge', `Merged branch ${task.branchName} to master and pushed`, task.id);
+        await this.sendMessage(`🔀 Merged ${task.branchName} to master and pushed`, undefined, task.id);
       } catch (mergeError) {
         await this.logActivity('git_error', `Merge failed: ${mergeError}`, task.id);
         await this.sendMessage(

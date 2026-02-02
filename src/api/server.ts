@@ -1,6 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import path from 'path';
+import fs from 'fs';
 import { PrismaClient } from '@prisma/client';
 import dotenv from 'dotenv';
 
@@ -56,7 +57,7 @@ app.get('/api/stats', async (req: Request, res: Response) => {
         acc[t.status] = t._count;
         return acc;
       },
-      {} as Record<string, number>
+      {} as Record<string, number>,
     );
 
     res.json({
@@ -158,7 +159,14 @@ app.post('/api/tasks', async (req: Request, res: Response) => {
 
 app.patch('/api/tasks/:id', async (req: Request, res: Response) => {
   try {
-    const allowedFields = ['title', 'description', 'status', 'priority', 'assigneeId', 'branchName'];
+    const allowedFields = [
+      'title',
+      'description',
+      'status',
+      'priority',
+      'assigneeId',
+      'branchName',
+    ];
     const updateData: Record<string, unknown> = {};
 
     for (const field of allowedFields) {
@@ -318,7 +326,22 @@ app.post('/api/tasks/:id/messages', async (req: Request, res: Response) => {
 // Dashboard Static Files
 // ============================================================================
 
-app.use('/dashboard', express.static(path.join(__dirname, '../dashboard')));
+const dashboardDirCandidates = [
+  path.join(process.cwd(), 'src', 'dashboard'),
+  path.join(process.cwd(), 'dist', 'dashboard'),
+  path.join(__dirname, '../dashboard'),
+];
+
+const dashboardDir = dashboardDirCandidates.find((dir) => fs.existsSync(dir)) || '';
+
+if (dashboardDir) {
+  app.use('/dashboard', express.static(dashboardDir));
+  app.get('/dashboard', (req: Request, res: Response) => {
+    res.sendFile(path.join(dashboardDir, 'index.html'));
+  });
+} else {
+  console.warn('[API] Dashboard directory not found. UI will not be served.');
+}
 
 // Redirect root to dashboard
 app.get('/', (req: Request, res: Response) => {
