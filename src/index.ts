@@ -5,23 +5,17 @@ dotenv.config();
 
 const logger = createLogger({
   level: 'info',
-  format: format.combine(
-    format.timestamp(),
-    format.json()
-  ),
+  format: format.combine(format.timestamp(), format.json()),
   transports: [
     new transports.Console({
-      format: format.combine(
-        format.colorize(),
-        format.simple()
-      )
-    })
-  ]
+      format: format.combine(format.colorize(), format.simple()),
+    }),
+  ],
 });
 
 async function main() {
   logger.info('AgentOS Kernel initializing...');
-  
+
   if (!process.env.DEEPSEEK_API_KEY) {
     logger.warn('DEEPSEEK_API_KEY is not set in environment variables');
   } else {

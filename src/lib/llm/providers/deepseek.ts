@@ -11,13 +11,13 @@ export class DeepSeekProvider implements LLMProvider {
 
   async generate(messages: LLMMessage[], options?: LLMOptions): Promise<LLMResponse> {
     const model = options?.model || 'deepseek-chat';
-    
+
     // DeepSeek API is OpenAI compatible
     const response = await fetch(`${this.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.apiKey}`,
+        Authorization: `Bearer ${this.apiKey}`,
       },
       body: JSON.stringify({
         model: model,
@@ -31,10 +31,12 @@ export class DeepSeekProvider implements LLMProvider {
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`DeepSeek API Error: ${response.status} ${response.statusText} - ${errorText}`);
+      throw new Error(
+        `DeepSeek API Error: ${response.status} ${response.statusText} - ${errorText}`,
+      );
     }
 
-    const data = await response.json() as {
+    const data = (await response.json()) as {
       choices: { message: { content: string; reasoning_content?: string } }[];
       usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
       model?: string;

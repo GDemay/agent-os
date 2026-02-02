@@ -250,7 +250,7 @@ providers:
     models:
       - deepseek-reasoner  # DeepSeek R1 (Planning/Reasoning)
       - deepseek-chat      # DeepSeek V3 (Coding/General)
-  
+
   opencode: # Generic OpenAI-compatible provider (e.g. Kimi, Qwen, Local)
     api_key: ${OPENCODE_API_KEY}
     base_url: ${OPENCODE_BASE_URL}
@@ -263,15 +263,15 @@ roles:
   orchestrator:
     primary: deepseek-reasoner
     fallback: deepseek-chat
-  
+
   worker:
     primary: deepseek-chat
     fallback: opencode/moonshot-v1-8k
-  
+
   reviewer:
     primary: deepseek-reasoner
     fallback: deepseek-chat
-  
+
   heartbeat:
     primary: deepseek-chat  # Extremely cheap
     fallback: opencode/moonshot-v1-8k
