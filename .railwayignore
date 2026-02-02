@@ -1,0 +1,35 @@
+# Development files
+node_modules/
+.git/
+.vscode/
+.idea/
+
+# TypeScript source (we deploy compiled JS)
+# src/ - We need src for ts-node scripts
+
+# Environment files
+.env.local
+.env.development
+.env.test
+
+# Build artifacts
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+coverage/
+.nyc_output/
+
+# Documentation (not needed in production)
+docs/
+*.md
+!README.md
+
+# Misc
+.DS_Store
+*.swp
+*.swo
+*~
+.eslintcache

@@ -1,0 +1,20 @@
+{
+  "providers": ["nodejs"],
+  "phases": {
+    "setup": {
+      "nixPkgs": ["nodejs", "npm"]
+    },
+    "install": {
+      "cmds": ["npm ci"]
+    },
+    "build": {
+      "cmds": [
+        "npm run build",
+        "npx prisma generate"
+      ]
+    }
+  },
+  "start": {
+    "cmd": "npm run start:production"
+  }
+}
