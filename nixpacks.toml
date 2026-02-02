@@ -1,4 +1,6 @@
-# Nixpacks auto-detects Node.js from package.json
+# Explicitly define Node.js setup for Railway compatibility
+[phases.setup]
+nixPkgs = ["nodejs_18", "openssl"]
 
 [phases.install]
 cmds = ["npm ci"]
