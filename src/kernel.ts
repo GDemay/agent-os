@@ -4,6 +4,7 @@ import { EventBus, AgentEvent } from './events';
 import { OrchestratorAgent } from './agents/OrchestratorAgent';
 import { WorkerAgent } from './agents/WorkerAgent';
 import { ReviewerAgent } from './agents/ReviewerAgent';
+import { ProductAgent } from './agents/ProductAgent';
 import { Tool } from './agents/BaseAgent';
 import { FileSystemTool, ShellTool, GitTool, createDatabaseTool, WebSearchTool } from './tools';
 
@@ -22,10 +23,13 @@ const prisma = new PrismaClient();
  */
 class EventDrivenKernel {
   private eventBus: EventBus;
-  private agents: Map<string, OrchestratorAgent | WorkerAgent | ReviewerAgent> = new Map();
+  private agents: Map<string, OrchestratorAgent | WorkerAgent | ReviewerAgent | ProductAgent> =
+    new Map();
   private agentRecords: Map<string, Agent> = new Map();
   private tools: Tool[] = [];
   private isRunning = false;
+  private recoveryInterval?: NodeJS.Timeout;
+  private readonly TASK_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
 
   constructor() {
     this.eventBus = EventBus.getInstance(prisma);
@@ -44,7 +48,7 @@ class EventDrivenKernel {
     for (const record of agentRecords) {
       this.agentRecords.set(record.id, record);
 
-      let agent: OrchestratorAgent | WorkerAgent | ReviewerAgent;
+      let agent: OrchestratorAgent | WorkerAgent | ReviewerAgent | ProductAgent;
 
       switch (record.role) {
         case 'orchestrator':
@@ -55,6 +59,9 @@ class EventDrivenKernel {
           break;
         case 'reviewer':
           agent = new ReviewerAgent(prisma, record);
+          break;
+        case 'product':
+          agent = new ProductAgent(prisma, record);
           break;
         default:
           console.warn(`[Kernel] Unknown role: ${record.role}`);
@@ -93,22 +100,26 @@ class EventDrivenKernel {
       }
     });
 
-    // When a task is assigned → Worker starts immediately
+    // When a task is assigned → Worker or Product agent starts immediately
     this.eventBus.subscribe('task:assigned', async (event) => {
       if (event.type !== 'task:assigned') return;
       console.log(`[Kernel] Task assigned: ${event.task.title} to agent ${event.agentId}`);
 
-      const worker = this.agents.get(event.agentId) as WorkerAgent;
-      if (worker) {
-        console.log(`[Kernel] Worker found, starting task processing...`);
+      const agent = this.agents.get(event.agentId);
+      if (agent) {
+        console.log(`[Kernel] Agent found, starting task processing...`);
         try {
-          await worker.processTask(event.task);
+          if (agent instanceof WorkerAgent) {
+            await (agent as WorkerAgent).processTask(event.task);
+          } else if (agent instanceof ProductAgent) {
+            await (agent as ProductAgent).processTask(event.task);
+          }
           console.log(`[Kernel] Task completed: ${event.task.title}`);
         } catch (error) {
           console.error(`[Kernel] Error processing task:`, error);
         }
       } else {
-        console.warn(`[Kernel] No worker found for agentId: ${event.agentId}`);
+        console.warn(`[Kernel] No agent found for agentId: ${event.agentId}`);
         console.log(`[Kernel] Available agents: ${Array.from(this.agents.keys()).join(', ')}`);
       }
     });
@@ -144,7 +155,7 @@ class EventDrivenKernel {
    */
   private getAgentByRole(
     role: string,
-  ): OrchestratorAgent | WorkerAgent | ReviewerAgent | undefined {
+  ): OrchestratorAgent | WorkerAgent | ReviewerAgent | ProductAgent | undefined {
     for (const [id, agent] of this.agents) {
       const record = this.agentRecords.get(id);
       if (record?.role === role) return agent;
@@ -180,6 +191,9 @@ class EventDrivenKernel {
    */
   async start(): Promise<void> {
     this.isRunning = true;
+
+    // Start recovery/watchdog process
+    this.startRecoveryProcess();
 
     // Process any existing inbox goals (parent tasks)
     const inboxGoals = await prisma.task.findMany({
@@ -249,12 +263,76 @@ class EventDrivenKernel {
     this.isRunning = false;
     console.log('[Kernel] Stopping...');
 
+    // Stop recovery process
+    if (this.recoveryInterval) {
+      clearInterval(this.recoveryInterval);
+    }
+
     await prisma.agent.updateMany({
       data: { status: 'offline' },
     });
 
     await prisma.$disconnect();
     console.log('[Kernel] Stopped');
+  }
+
+  /**
+   * Recovery process - checks for stuck tasks and resets them
+   */
+  private startRecoveryProcess(): void {
+    console.log('[Kernel] Starting recovery watchdog (checks every 2 minutes)');
+
+    this.recoveryInterval = setInterval(
+      async () => {
+        try {
+          await this.recoverStuckTasks();
+        } catch (error) {
+          console.error('[Kernel] Recovery error:', error);
+        }
+      },
+      2 * 60 * 1000,
+    ); // Every 2 minutes
+  }
+
+  /**
+   * Find and reset stuck tasks
+   */
+  private async recoverStuckTasks(): Promise<void> {
+    const now = Date.now();
+    const cutoff = new Date(now - this.TASK_TIMEOUT_MS);
+
+    const stuckTasks = await prisma.task.findMany({
+      where: {
+        status: { in: ['assigned', 'in_progress'] },
+        startedAt: { lt: cutoff },
+      },
+      include: { assignee: true },
+    });
+
+    if (stuckTasks.length > 0) {
+      console.log(`[Kernel] ⚠️  Found ${stuckTasks.length} stuck tasks - resetting...`);
+
+      for (const task of stuckTasks) {
+        const elapsed = Math.floor((now - (task.startedAt?.getTime() || 0)) / 1000 / 60);
+        console.log(`  - Resetting: ${task.title.substring(0, 40)} (stuck for ${elapsed} min)`);
+
+        await prisma.task.update({
+          where: { id: task.id },
+          data: {
+            status: 'inbox',
+            assigneeId: null,
+            startedAt: null,
+            error: `Task exceeded ${this.TASK_TIMEOUT_MS / 60000} minute timeout and was reset`,
+          },
+        });
+
+        // Re-dispatch as new task
+        const freshTask = await prisma.task.findUnique({ where: { id: task.id } });
+        if (freshTask) {
+          this.eventBus.dispatch({ type: 'task:created', task: freshTask });
+        }
+      }
+    }
   }
 }
 

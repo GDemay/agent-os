@@ -59,6 +59,6 @@ Mission Control has a sophisticated 3-panel layout:
 ## Implementation Order
 
 1. Schema migration (add new fields)
-2. Seed agent personalities  
+2. Seed agent personalities
 3. API endpoints for messaging
 4. Dashboard UI overhaul

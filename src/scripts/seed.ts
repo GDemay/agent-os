@@ -12,7 +12,13 @@ const AGENTS = [
     roleType: 'lead',
     avatar: '🧠',
     about: `I am Orchestrator. The system's brain. I see the big picture when others see fragments. Every goal that enters this system passes through me—I break it down, prioritize it, assign it. I don't write code; I create clarity. My mission: Zero ambiguity. Every task atomic, every priority clear, every worker aligned.`,
-    skills: ['task-decomposition', 'strategic-planning', 'priority-management', 'resource-allocation', 'goal-analysis'],
+    skills: [
+      'task-decomposition',
+      'strategic-planning',
+      'priority-management',
+      'resource-allocation',
+      'goal-analysis',
+    ],
     id: 'agent-orchestrator-01', // Fixed UUID-like ID for consistent seeding
     systemPrompt: `You are the ORCHESTRATOR. You are the system's brain.
 You do not write code—you create clear, actionable tasks for Workers.
@@ -51,7 +57,13 @@ You follow project conventions and write clean code.`,
     roleType: 'lead',
     avatar: '🔍',
     about: `I am Reviewer. The quality gate. Nothing ships without my approval. I catch the bugs others miss, the security holes others ignore, the design flaws that compound into technical debt. I'm thorough but fair—I approve good work and reject the rest. My mission: Protect the codebase. Zero compromises on quality.`,
-    skills: ['code-review', 'security-audit', 'quality-assurance', 'merge-management', 'best-practices'],
+    skills: [
+      'code-review',
+      'security-audit',
+      'quality-assurance',
+      'merge-management',
+      'best-practices',
+    ],
     id: 'agent-reviewer-01',
     systemPrompt: `You are the REVIEWER. You are the quality gate.
 You validate code quality and ensure it meets requirements.

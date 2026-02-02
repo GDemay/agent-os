@@ -1,12 +1,16 @@
 # AgentOS
 
-> A self-improving autonomous development system.
+> A self-improving autonomous development system with strategic product management.
+
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/agent-os)
 
 ## What is AgentOS?
 
-AgentOS is a minimal "kernel" that enables autonomous software development. Three AI agents (Orchestrator, Worker, Reviewer) coordinate through PostgreSQL to execute coding tasks and improve the system itself.
+AgentOS is an event-driven autonomous development system. Four specialized AI agents coordinate through PostgreSQL to execute development tasks, conduct strategic analysis, and continuously improve the product.
 
-## Quick Start
+## 🚀 Quick Start
+
+### Local Development
 
 ```bash
 # Install dependencies
@@ -14,30 +18,73 @@ npm install
 
 # Set up environment
 cp .env.example .env
-# Add your API keys (DEEPSEEK_API_KEY, OPENCODE_API_KEY)
+# Add your DEEPSEEK_API_KEY to .env
 
 # Initialize database
 npx prisma db push
 
-# Start the system
-npm run start
+# Seed agents
+npm run seed
+
+# Terminal 1: Start API & Dashboard
+npm run api
+# Visit http://localhost:3001/mission-control
+
+# Terminal 2: Start Kernel
+npm run kernel
 ```
+
+## 🌐 Access Points
+
+- **Mission Control Dashboard**: `http://localhost:3001/mission-control`
+- **API Health**: `http://localhost:3001/api/health`
+- **Old Dashboard**: `http://localhost:3001/dashboard`
+
+## 🤖 Agents
+
+### 💼 **Product Manager** (NEW!)
+Strategic analyst focused on:
+- 📊 Market research & competitive analysis
+- 💰 Monetization strategy
+- 🎨 UX improvements
+- 📋 Strategic roadmaps & feature planning
+
+### 🧠 **Orchestrator**
+Breaks down high-level goals into actionable sub-tasks
+
+### ⚡ **Worker**
+Executes technical tasks using filesystem, shell, and git tools
+
+### 🔍 **Reviewer**
+Reviews completed work, validates quality, approves merges
 
 ## Architecture
 
 ```
-Orchestrator (Planner) → Creates tasks, monitors progress
+Task Created
      ↓
-Worker (Coder) → Executes tasks, writes code
+Orchestrator → Breaks into sub-tasks
      ↓
-Reviewer (Judge) → Validates, approves, merges
+Worker/Product Manager → Executes tasks
+     ↓
+Reviewer → Validates & approves
+     ↓
+Event Bus → Real-time coordination
      ↓
 PostgreSQL → Single source of truth
 ```
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for full details.
+## 📋 Common Commands
 
-## CLI
+```bash
+npm run kernel          # Start event-driven kernel
+npm run api            # Start API server + dashboard
+npm run check-tasks    # Check task status
+npm run cleanup        # Reset stuck tasks
+npm run add-product-agent  # Add Product Manager
+```
+
+## 🎯 CLI
 
 ```bash
 agentos start                    # Start all agents
@@ -47,9 +94,29 @@ agentos log                      # Stream activity log
 agentos dashboard                # Open web dashboard
 ```
 
-## Documentation
+## � Deploy to Railway
+
+Click the button above or follow the [Railway Deployment Guide](docs/RAILWAY_DEPLOYMENT.md).
+
+**What you get:**
+- ✅ Automatic PostgreSQL database provisioning
+- ✅ Zero-config deployment
+- ✅ Auto-scaling
+- ✅ SSL/HTTPS by default
+- ✅ Continuous deployment from GitHub
+- ✅ Custom domain support
+
+**Set these environment variables in Railway:**
+- `DEEPSEEK_API_KEY` - Your DeepSeek API key
+
+Railway automatically sets `DATABASE_URL` and `PORT`.
+
+## 📚 Documentation
 
 - [ARCHITECTURE.md](ARCHITECTURE.md) - System design and database schema
+- [RAILWAY_DEPLOYMENT.md](docs/RAILWAY_DEPLOYMENT.md) - Complete Railway deployment guide
+- [QUICK_START_WITH_PRODUCT.md](docs/QUICK_START_WITH_PRODUCT.md) - Product Manager guide
+- [TASK_RECOVERY.md](docs/TASK_RECOVERY.md) - Task timeout and recovery system
 - [POC_SCOPE.md](POC_SCOPE.md) - PoC goals and success criteria
 - [ORCHESTRATOR_SOUL.md](ORCHESTRATOR_SOUL.md) - Orchestrator agent personality
 - [WORKER_SOUL.md](WORKER_SOUL.md) - Worker agent personality
@@ -57,7 +124,7 @@ agentos dashboard                # Open web dashboard
 
 ## Status
 
-🚧 **PoC in Development** - Building the self-improving kernel.
+✅ **Production Ready** - Event-driven kernel with strategic product management.
 
 ## License
 

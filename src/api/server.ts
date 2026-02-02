@@ -9,7 +9,7 @@ dotenv.config();
 
 const prisma = new PrismaClient();
 const app = express();
-const PORT = process.env.API_PORT || 3001;
+const PORT = process.env.PORT || process.env.API_PORT || 3001;
 
 // Helper to get param as string
 const getIdParam = (req: Request): string => {
@@ -486,8 +486,12 @@ if (dashboardDir) {
   app.get('/dashboard', (req: Request, res: Response) => {
     res.sendFile(path.join(dashboardDir, 'index.html'));
   });
-  // Mission Control - new UI
+  // Mission Control - interactive v2
   app.get('/mission-control', (req: Request, res: Response) => {
+    res.sendFile(path.join(dashboardDir, 'mission-control-v2.html'));
+  });
+  // Old version still accessible
+  app.get('/mission-control-v1', (req: Request, res: Response) => {
     res.sendFile(path.join(dashboardDir, 'mission-control.html'));
   });
 } else {

@@ -6,6 +6,9 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
+    "start:production": "node dist/production.js",
+    "postinstall": "npx prisma generate",
+    "railway:deploy": "bash scripts/railway-deploy.sh && npm run start:production",
     "dev": "nodemon src/index.ts",
     "runner": "ts-node src/runner.ts",
     "kernel": "ts-node src/kernel.ts",
@@ -14,7 +17,10 @@
     "lint": "eslint src/**/*.ts",
     "format": "prettier --write \"src/**/*.ts\"",
     "test": "jest",
-    "seed": "ts-node src/scripts/seed.ts"
+    "seed": "ts-node src/scripts/seed.ts",
+    "cleanup": "ts-node scripts/cleanup-stuck-tasks.ts",
+    "check-tasks": "ts-node scripts/check-tasks.ts",
+    "add-product-agent": "ts-node scripts/add-product-agent.ts"
   },
   "bin": {
     "agentos": "./dist/cli/index.js"
