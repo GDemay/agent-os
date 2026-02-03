@@ -12,4 +12,4 @@ cmds = [
 ]
 
 [start]
-cmd = "npm run start:production"
+cmd = "bash scripts/railway-deploy.sh && npm run start:production"

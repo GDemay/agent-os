@@ -86,7 +86,7 @@ Tasks can get stuck when:
 2. **Agent crashes** - Agent process dies but task remains assigned
 3. **LLM timeout** - API call hangs indefinitely
 4. **Tool execution hangs** - Shell command or git operation blocks
-5. **Network issues** - DeepSeek API unreachable
+5. **Network issues** - NVIDIA NIM API unreachable
 
 The recovery system catches all of these cases.
 

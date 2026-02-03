@@ -14,7 +14,7 @@ cmds = ["npm ci"]
 cmds = ["npm run build", "npx prisma generate"]
 
 [deploy]
-startCommand = "npm run start:production"
+startCommand = "bash scripts/railway-deploy.sh && npm run start:production"
 healthcheckPath = "/api/health"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"

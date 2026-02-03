@@ -110,11 +110,11 @@ These can be assigned to different agents (Claude, Kimi, Copilot) and worked on 
 - Or run locally: `docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=postgres postgres`
 - Run migrations: `npx prisma migrate dev`
 
-### 2. DEEPSEEK API KEY
+### 2. NVIDIA NIM API KEY
 **Risk**: LLM calls will fail without valid key
 **Mitigation**:
-- Get key from https://platform.deepseek.com/
-- Add to `.env`: `DEEPSEEK_API_KEY=sk-...`
+- Get key from https://build.nvidia.com/
+- Add to `.env`: `NVIDIA_NIM_API_KEY=nvapi-...`
 
 ### 3. CIRCULAR IMPORTS
 **Risk**: Agent ↔ Tool dependencies

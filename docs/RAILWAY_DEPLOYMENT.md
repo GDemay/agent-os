@@ -4,7 +4,7 @@
 
 1. **Railway Account**: Sign up at [railway.app](https://railway.app)
 2. **GitHub Repository**: Push your code to GitHub
-3. **DeepSeek API Key**: Get from [platform.deepseek.com](https://platform.deepseek.com)
+3. **NVIDIA NIM API Key**: Get from [build.nvidia.com](https://build.nvidia.com)
 
 ## Quick Deploy
 
@@ -24,7 +24,7 @@
 3. **Configure Environment Variables**
    Click on your service → Variables → Add:
    ```
-   DEEPSEEK_API_KEY=your-deepseek-api-key-here
+   NVIDIA_NIM_API_KEY=your-nvidia-nim-api-key-here
    NODE_ENV=production
    ```
 
@@ -57,7 +57,7 @@ railway init
 railway add -d postgres
 
 # Set environment variables
-railway variables set DEEPSEEK_API_KEY=your-key-here
+railway variables set NVIDIA_NIM_API_KEY=your-key-here
 
 # Deploy
 railway up
@@ -86,7 +86,7 @@ Railway will automatically:
 ## Environment Variables
 
 ### Required
-- `DEEPSEEK_API_KEY` - Your DeepSeek API key
+- `NVIDIA_NIM_API_KEY` - Your NVIDIA NIM API key
 
 ### Automatic (Set by Railway)
 - `DATABASE_URL` - PostgreSQL connection string
@@ -144,7 +144,7 @@ Visit: `https://your-app.up.railway.app/mission-control`
 **Symptom**: Tasks not processing
 - **Check logs** for kernel startup messages
 - **Verify** both `web` and `kernel` processes are running
-- **Check** DeepSeek API key is valid
+- **Check** NVIDIA NIM API key is valid
 
 ## Custom Domain
 

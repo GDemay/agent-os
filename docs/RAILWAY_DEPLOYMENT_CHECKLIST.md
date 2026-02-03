@@ -36,7 +36,7 @@ railway up
 ### 3. Set Environment Variables
 ```bash
 # Required:
-DEEPSEEK_API_KEY=sk-xxxxxxxxxxxxx
+NVIDIA_NIM_API_KEY=nvapi-xxxxxxxxxxxxx
 
 # Automatic (set by Railway):
 DATABASE_URL=postgresql://...
@@ -105,10 +105,10 @@ npm run build
 # 3. Check deployment logs for Prisma errors
 ```
 
-**Error**: "DEEPSEEK_API_KEY not set"
+**Error**: "NVIDIA_NIM_API_KEY not set"
 ```bash
 # Set in Railway dashboard:
-railway variables set DEEPSEEK_API_KEY=your-key-here
+railway variables set NVIDIA_NIM_API_KEY=your-key-here
 ```
 
 **Error**: "Port already in use"
@@ -122,7 +122,7 @@ railway variables set DEEPSEEK_API_KEY=your-key-here
 ```bash
 # 1. Check logs for kernel startup
 # 2. Verify agents were seeded
-# 3. Check DeepSeek API key is valid
+# 3. Check NVIDIA NIM API key is valid
 # 4. Restart deployment
 ```
 

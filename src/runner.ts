@@ -27,8 +27,13 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  if (!process.env.DEEPSEEK_API_KEY) {
-    console.warn('⚠️  Warning: DEEPSEEK_API_KEY is not set. LLM calls will fail.');
+  if (
+    !process.env.NVIDIA_NIM_API_KEY &&
+    !process.env.NIM_API_KEY &&
+    !process.env.DEEPSEEK_API_KEY &&
+    !process.env.OPENCODE_API_KEY
+  ) {
+    console.warn('⚠️  Warning: No LLM API key is set. LLM calls will fail.');
   }
 
   console.log('[Kernel] Connecting to database...');

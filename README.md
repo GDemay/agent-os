@@ -18,7 +18,7 @@ npm install
 
 # Set up environment
 cp .env.example .env
-# Add your DEEPSEEK_API_KEY to .env
+# Add your NVIDIA_NIM_API_KEY to .env
 
 # Initialize database
 npx prisma db push
@@ -107,7 +107,7 @@ Click the button above or follow the [Railway Deployment Guide](docs/RAILWAY_DEP
 - ✅ Custom domain support
 
 **Set these environment variables in Railway:**
-- `DEEPSEEK_API_KEY` - Your DeepSeek API key
+- `NVIDIA_NIM_API_KEY` - Your NVIDIA NIM API key
 
 Railway automatically sets `DATABASE_URL` and `PORT`.
 

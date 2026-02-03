@@ -29,7 +29,14 @@ class EventDrivenKernel {
   private tools: Tool[] = [];
   private isRunning = false;
   private recoveryInterval?: NodeJS.Timeout;
+  private autonomyInterval?: NodeJS.Timeout;
+  private autonomyRunning = false;
+  private lastGoalScanAt = new Date(0);
+  private lastBlockedScanAt = new Date(0);
+  private lastProductHeartbeatAt = 0;
   private readonly TASK_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
+  private readonly AUTONOMY_INTERVAL_MS = 60 * 1000; // 1 minute
+  private readonly PRODUCT_AUTONOMY_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
   constructor() {
     this.eventBus = EventBus.getInstance(prisma);
@@ -97,6 +104,17 @@ class EventDrivenKernel {
       const orchestrator = this.getAgentByRole('orchestrator');
       if (orchestrator) {
         await (orchestrator as OrchestratorAgent).processNewGoal(event.task);
+      }
+    });
+
+    // When a task is blocked → Orchestrator attempts resolution
+    this.eventBus.subscribe('task:blocked', async (event) => {
+      if (event.type !== 'task:blocked') return;
+      console.log(`[Kernel] Task blocked: ${event.task.title}`);
+
+      const orchestrator = this.getAgentByRole('orchestrator');
+      if (orchestrator) {
+        await (orchestrator as OrchestratorAgent).handleBlockedTask(event.task);
       }
     });
 
@@ -194,6 +212,7 @@ class EventDrivenKernel {
 
     // Start recovery/watchdog process
     this.startRecoveryProcess();
+    this.startAutonomyLoop();
 
     // Process any existing inbox goals (parent tasks)
     const inboxGoals = await prisma.task.findMany({
@@ -267,6 +286,9 @@ class EventDrivenKernel {
     if (this.recoveryInterval) {
       clearInterval(this.recoveryInterval);
     }
+    if (this.autonomyInterval) {
+      clearInterval(this.autonomyInterval);
+    }
 
     await prisma.agent.updateMany({
       data: { status: 'offline' },
@@ -292,6 +314,135 @@ class EventDrivenKernel {
       },
       2 * 60 * 1000,
     ); // Every 2 minutes
+  }
+
+  /**
+   * Autonomy loop - reconciles state for new goals, assignments, reviews, and product initiatives.
+   */
+  private startAutonomyLoop(): void {
+    console.log(
+      `[Kernel] Starting autonomy loop (every ${this.AUTONOMY_INTERVAL_MS / 1000}s)`,
+    );
+    this.lastGoalScanAt = new Date();
+    this.lastBlockedScanAt = new Date();
+
+    const runTick = async () => {
+      if (this.autonomyRunning) return;
+      this.autonomyRunning = true;
+      try {
+        await this.dispatchNewInboxGoals();
+        await this.dispatchBlockedTasks();
+        await this.dispatchAssignedTasks();
+        await this.assignIdleWorkers();
+        await this.dispatchReviewTasks();
+        await this.runProductHeartbeatIfDue();
+      } catch (error) {
+        console.error('[Kernel] Autonomy loop error:', error);
+      } finally {
+        this.autonomyRunning = false;
+      }
+    };
+
+    void runTick();
+    this.autonomyInterval = setInterval(runTick, this.AUTONOMY_INTERVAL_MS);
+  }
+
+  private async dispatchNewInboxGoals(): Promise<void> {
+    const now = new Date();
+    const newGoals = await prisma.task.findMany({
+      where: {
+        status: 'inbox',
+        parentTaskId: null,
+        createdAt: { gt: this.lastGoalScanAt, lte: now },
+      },
+    });
+    this.lastGoalScanAt = now;
+
+    for (const goal of newGoals) {
+      this.eventBus.dispatch({ type: 'task:created', task: goal });
+    }
+  }
+
+  private async dispatchBlockedTasks(): Promise<void> {
+    const now = new Date();
+    const blockedTasks = await prisma.task.findMany({
+      where: {
+        status: 'blocked',
+        updatedAt: { gt: this.lastBlockedScanAt, lte: now },
+      },
+    });
+    this.lastBlockedScanAt = now;
+
+    for (const task of blockedTasks) {
+      this.eventBus.dispatch({
+        type: 'task:blocked',
+        task,
+        error: task.error || 'Unknown blocker',
+      });
+    }
+  }
+
+  private async dispatchAssignedTasks(): Promise<void> {
+    const assignedTasks = await prisma.task.findMany({
+      where: { status: 'assigned', assigneeId: { not: null } },
+      include: { assignee: true },
+    });
+
+    for (const task of assignedTasks) {
+      if (task.assigneeId && task.assignee?.status === 'idle') {
+        this.eventBus.dispatch({
+          type: 'task:assigned',
+          task,
+          agentId: task.assigneeId,
+        });
+      }
+    }
+  }
+
+  private async assignIdleWorkers(): Promise<void> {
+    const idleWorkers = await prisma.agent.findMany({
+      where: { role: 'worker', status: 'idle' },
+    });
+
+    for (const worker of idleWorkers) {
+      await this.assignNextTask(worker.id);
+    }
+  }
+
+  private async dispatchReviewTasks(): Promise<void> {
+    const reviewer = this.getAgentByRole('reviewer');
+    if (!reviewer) return;
+
+    const reviewerRecord = Array.from(this.agentRecords.values()).find(
+      (record) => record.role === 'reviewer',
+    );
+    if (!reviewerRecord || reviewerRecord.status !== 'idle') return;
+
+    const reviewTask = await prisma.task.findFirst({
+      where: { status: 'review' },
+      orderBy: { updatedAt: 'asc' },
+    });
+
+    if (reviewTask) {
+      this.eventBus.dispatch({ type: 'task:review_needed', task: reviewTask });
+    }
+  }
+
+  private async runProductHeartbeatIfDue(): Promise<void> {
+    const productAgent = this.getAgentByRole('product');
+    if (!productAgent) return;
+
+    const now = Date.now();
+    if (now - this.lastProductHeartbeatAt < this.PRODUCT_AUTONOMY_INTERVAL_MS) {
+      return;
+    }
+
+    this.lastProductHeartbeatAt = now;
+    try {
+      await (productAgent as ProductAgent).heartbeat();
+    } catch (error) {
+      console.error('[Kernel] Product autonomy error:', error);
+    }
   }
 
   /**
@@ -351,8 +502,13 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  if (!process.env.DEEPSEEK_API_KEY) {
-    console.warn('⚠️  DEEPSEEK_API_KEY not set - LLM calls will fail');
+  if (
+    !process.env.NVIDIA_NIM_API_KEY &&
+    !process.env.NIM_API_KEY &&
+    !process.env.DEEPSEEK_API_KEY &&
+    !process.env.OPENCODE_API_KEY
+  ) {
+    console.warn('⚠️  No LLM API key set - LLM calls will fail');
   }
 
   const kernel = new EventDrivenKernel();

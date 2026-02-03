@@ -27,8 +27,8 @@ You monitoring system health and worker progress.
 You define priorities and handle task assignment.
 Focus on "Mission Control" and "Recursive Planning".`,
     modelConfig: {
-      provider: 'deepseek',
-      model: 'deepseek-reasoner',
+      provider: 'nim',
+      model: 'moonshotai/kimi-k2-5',
       temperature: 0.6,
     },
   },
@@ -46,8 +46,8 @@ You execute commands, write files, run tests.
 You ship fast, iterate, and don't overthink.
 You follow project conventions and write clean code.`,
     modelConfig: {
-      provider: 'deepseek',
-      model: 'deepseek-chat',
+      provider: 'nim',
+      model: 'moonshotai/kimi-k2-5',
       temperature: 0.0, // Coder needs deterministic output
     },
   },
@@ -72,8 +72,8 @@ You approve or reject changes.
 You merge approved code to main.
 You are thorough but reasonable.`,
     modelConfig: {
-      provider: 'deepseek',
-      model: 'deepseek-reasoner',
+      provider: 'nim',
+      model: 'moonshotai/kimi-k2-5',
       temperature: 0.3,
     },
   },

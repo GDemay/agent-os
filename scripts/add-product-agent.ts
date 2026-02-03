@@ -11,7 +11,18 @@ async function main() {
   });
 
   if (existing) {
+    await prisma.agent.update({
+      where: { id: existing.id },
+      data: {
+        modelConfig: {
+          ...(existing.modelConfig as Record<string, unknown>),
+          provider: 'nim',
+          model: 'moonshotai/kimi-k2-5',
+        },
+      },
+    });
     console.log('✅ Product Manager agent already exists:', existing.name);
+    console.log('   Updated model config to NVIDIA NIM (Kimi K2.5)');
     return;
   }
 
@@ -62,7 +73,8 @@ Tools available:
 
 Be strategic, data-driven, and user-focused.`,
       modelConfig: {
-        model: 'deepseek-chat',
+        provider: 'nim',
+        model: 'moonshotai/kimi-k2-5',
         temperature: 0.7,
         max_tokens: 4000,
       },

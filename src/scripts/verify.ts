@@ -21,22 +21,22 @@ async function verifySystem() {
     await prisma.$disconnect();
   }
 
-  // 2. DeepSeek API Check
-  console.log('\n2️⃣  DeepSeek API...');
+  // 2. NVIDIA NIM API Check (Kimi K2.5)
+  console.log('\n2️⃣  NVIDIA NIM API (Kimi K2.5)...');
   try {
-    const llm = LLMFactory.create('deepseek');
+    const llm = LLMFactory.create('nim');
     const response = await llm.generate(
       [
         { role: 'system', content: 'You are a test.' },
         { role: 'user', content: 'Say "OK" if you can hear me.' },
       ],
-      { model: 'deepseek-chat', maxTokens: 10 },
+      { model: 'moonshotai/kimi-k2-5', maxTokens: 10 },
     );
-    console.log(`   ✅ DeepSeek API working`);
+    console.log(`   ✅ NVIDIA NIM API working`);
     console.log(`   ✅ Response: "${response.content}"`);
     console.log(`   ✅ Tokens used: ${response.usage.totalTokens}`);
   } catch (e) {
-    console.log(`   ❌ DeepSeek error: ${e}`);
+    console.log(`   ❌ NVIDIA NIM error: ${e}`);
   }
 
   // 3. Git Check

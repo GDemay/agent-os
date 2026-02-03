@@ -244,6 +244,12 @@ The critical capability: agents can modify their own codebase.
 ```yaml
 # config/llm.yaml
 providers:
+  nim:
+    api_key: ${NVIDIA_NIM_API_KEY}
+    base_url: https://integrate.api.nvidia.com/v1
+    models:
+      - moonshotai/kimi-k2-5  # Kimi K2.5
+
   deepseek:
     api_key: ${DEEPSEEK_API_KEY}
     base_url: https://api.deepseek.com
@@ -255,25 +261,25 @@ providers:
     api_key: ${OPENCODE_API_KEY}
     base_url: ${OPENCODE_BASE_URL}
     models:
-      - moonshot-v1-8k  # Kimi
+      - moonshot-v1-8k  # Kimi (Moonshot)
       - qwen-2.5-coder
 
 # Role-based model assignment
 roles:
   orchestrator:
-    primary: deepseek-reasoner
-    fallback: deepseek-chat
+    primary: nim/moonshotai/kimi-k2-5
+    fallback: deepseek-reasoner
 
   worker:
-    primary: deepseek-chat
+    primary: nim/moonshotai/kimi-k2-5
     fallback: opencode/moonshot-v1-8k
 
   reviewer:
-    primary: deepseek-reasoner
-    fallback: deepseek-chat
+    primary: nim/moonshotai/kimi-k2-5
+    fallback: deepseek-reasoner
 
   heartbeat:
-    primary: deepseek-chat  # Extremely cheap
+    primary: nim/moonshotai/kimi-k2-5
     fallback: opencode/moonshot-v1-8k
 
 | Layer | Technology | Rationale |

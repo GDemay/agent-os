@@ -156,7 +156,7 @@ IMPORTANT: Respond ONLY with valid JSON, no additional text:
    * Handles a blocked task by logging and attempting resolution
    * @param task - The blocked task
    */
-  private async handleBlockedTask(task: Task): Promise<void> {
+  async handleBlockedTask(task: Task): Promise<void> {
     await this.logActivity('review', `Reviewing blocked task: ${task.title}`, task.id);
 
     // Get the error reason if available

@@ -1,5 +1,5 @@
 import { PrismaClient, Agent, Task } from '@prisma/client';
-import { LLMFactory, LLMProvider, LLMMessage, LLMResponse } from '../lib/llm';
+import { LLMFactory, LLMProvider, LLMMessage, LLMResponse, LLMProviderType } from '../lib/llm';
 
 /**
  * Tool interface for agent capabilities
@@ -43,8 +43,15 @@ export abstract class BaseAgent {
   constructor(prisma: PrismaClient, agentRecord: Agent) {
     this.prisma = prisma;
     this.agentRecord = agentRecord;
-    const config = agentRecord.modelConfig as AgentConfig['modelConfig'];
-    this.llm = LLMFactory.create(config.provider);
+    const config = (agentRecord.modelConfig || {}) as Partial<AgentConfig['modelConfig']>;
+    const provider =
+      config.provider || process.env.DEFAULT_LLM_PROVIDER || LLMProviderType.NIM;
+    if (!config.provider) {
+      console.warn(
+        `[Agent] Model provider missing for ${agentRecord.name}. Falling back to ${provider}.`,
+      );
+    }
+    this.llm = LLMFactory.create(provider);
   }
 
   /**
@@ -128,10 +135,14 @@ export abstract class BaseAgent {
       { role: 'system', content: this.agentRecord.systemPrompt || '' },
       { role: 'user', content: userPrompt },
     ];
-    const config = this.agentRecord.modelConfig as AgentConfig['modelConfig'];
+    const config = (this.agentRecord.modelConfig || {}) as Partial<AgentConfig['modelConfig']>;
+    const model =
+      config.model || process.env.DEFAULT_LLM_MODEL || 'moonshotai/kimi-k2-5';
+    const temperature =
+      typeof config.temperature === 'number' ? config.temperature : 0.3;
     return this.llm.generate(messages, {
-      model: config.model,
-      temperature: config.temperature,
+      model,
+      temperature,
     });
   }
 }

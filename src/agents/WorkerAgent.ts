@@ -1,5 +1,6 @@
 import { PrismaClient, Agent, Task } from '@prisma/client';
 import { BaseAgent } from './BaseAgent';
+import { EventBus } from '../events';
 
 /**
  * WorkerAgent - The system's builder
@@ -140,53 +141,30 @@ export class WorkerAgent extends BaseAgent {
    * @param task - The task being worked on
    */
   private async workLoop(task: Task): Promise<void> {
-    // Load previous context
-    const messages = await this.prisma.message.findMany({
-      where: { taskId: task.id },
-      orderBy: { createdAt: 'asc' },
-      take: 20, // Limit context window
-    });
+    let iteration = 0;
+    let parseFailures = 0;
 
-    const previousContext =
-      messages.length > 0
-        ? `\nPREVIOUS CONTEXT:\n${messages.map((m) => m.content).join('\n---\n')}`
-        : '';
+    while (iteration < this.maxIterations) {
+      iteration++;
 
-    const toolDefs = this.getToolDefinitions();
+      const prompt = await this.buildWorkPrompt(task);
+      const response = await this.think(prompt);
+      const status = await this.processResponse(response.content, task);
 
-    const prompt = `
-You are working on a coding task.
+      if (status === 'complete' || status === 'blocked') {
+        return;
+      }
 
-TASK:
-Title: ${task.title}
-Description: ${task.description || 'No description'}
-Branch: ${task.branchName || 'Not created yet'}
+      if (status === 'error') {
+        parseFailures++;
+        if (parseFailures >= 2) {
+          await this.markTaskBlocked(task, 'Repeated response parsing errors');
+          return;
+        }
+      }
+    }
 
-AVAILABLE TOOLS:
-${toolDefs || 'No tools registered yet'}
-${previousContext}
-
-INSTRUCTIONS:
-1. Analyze what needs to be done
-2. Plan your approach
-3. Use the available tools to complete the task
-4. Write clean, tested code
-5. When completely done, set status to "complete"
-6. If you cannot proceed, set status to "blocked"
-
-Respond with a JSON object:
-{
-  "thinking": "your analysis and plan",
-  "actions": [
-    {"tool": "tool_name", "args": {"arg1": "value1"}}
-  ],
-  "status": "working" | "complete" | "blocked",
-  "summary": "what you did or why you're blocked"
-}
-`;
-
-    const response = await this.think(prompt);
-    await this.processResponse(response.content, task);
+    await this.markTaskBlocked(task, 'Max iterations reached without completion');
   }
 
   /**
@@ -194,7 +172,10 @@ Respond with a JSON object:
    * @param content - The LLM response content
    * @param task - The current task
    */
-  private async processResponse(content: string, task: Task): Promise<void> {
+  private async processResponse(
+    content: string,
+    task: Task,
+  ): Promise<'complete' | 'blocked' | 'working' | 'error'> {
     try {
       // Extract JSON from response
       let jsonContent = content;
@@ -265,13 +246,11 @@ Respond with a JSON object:
         });
         await this.sendMessage(`✅ Task complete: ${parsed.summary}`, undefined, task.id);
         await this.logActivity('task_complete', `Completed: ${task.title}`, task.id);
+        this.dispatchReviewEvent(task);
+        return 'complete';
       } else if (parsed.status === 'blocked') {
-        await this.prisma.task.update({
-          where: { id: task.id },
-          data: { status: 'blocked', error: parsed.summary },
-        });
-        await this.sendMessage(`🚫 BLOCKED: ${parsed.summary}`, undefined, task.id);
-        await this.logActivity('task_blocked', `Blocked: ${parsed.summary}`, task.id);
+        await this.markTaskBlocked(task, parsed.summary || 'Blocked without summary');
+        return 'blocked';
       } else {
         // Status is 'working' - log progress
         await this.sendMessage(
@@ -279,11 +258,89 @@ Respond with a JSON object:
           undefined,
           task.id,
         );
+        return 'working';
       }
     } catch (e) {
       await this.logActivity('error', `Failed to process response: ${e}`, task.id);
       // Don't block the task for parse errors - log and continue
       await this.sendMessage(`⚠️ Worker encountered an error: ${e}`, undefined, task.id);
+      return 'error';
+    }
+  }
+
+  private async buildWorkPrompt(task: Task): Promise<string> {
+    const messages = await this.prisma.message.findMany({
+      where: { taskId: task.id },
+      orderBy: { createdAt: 'asc' },
+      take: 20, // Limit context window
+    });
+
+    const previousContext =
+      messages.length > 0
+        ? `\nPREVIOUS CONTEXT:\n${messages.map((m) => m.content).join('\n---\n')}`
+        : '';
+
+    const toolDefs = this.getToolDefinitions();
+
+    return `
+You are working on a coding task.
+
+TASK:
+Title: ${task.title}
+Description: ${task.description || 'No description'}
+Branch: ${task.branchName || 'Not created yet'}
+
+AVAILABLE TOOLS:
+${toolDefs || 'No tools registered yet'}
+${previousContext}
+
+INSTRUCTIONS:
+1. Analyze what needs to be done
+2. Plan your approach
+3. Use the available tools to complete the task
+4. Write clean, tested code
+5. When completely done, set status to "complete"
+6. If you cannot proceed, set status to "blocked"
+
+Respond with a JSON object:
+{
+  "thinking": "your analysis and plan",
+  "actions": [
+    {"tool": "tool_name", "args": {"arg1": "value1"}}
+  ],
+  "status": "working" | "complete" | "blocked",
+  "summary": "what you did or why you're blocked"
+}
+`;
+  }
+
+  private async markTaskBlocked(task: Task, reason: string): Promise<void> {
+    await this.prisma.task.update({
+      where: { id: task.id },
+      data: { status: 'blocked', error: reason },
+    });
+    await this.sendMessage(`🚫 BLOCKED: ${reason}`, undefined, task.id);
+    await this.logActivity('task_blocked', `Blocked: ${reason}`, task.id);
+    this.dispatchBlockedEvent(task, reason);
+  }
+
+  private dispatchReviewEvent(task: Task): void {
+    const eventBus = this.getEventBus();
+    if (!eventBus) return;
+    eventBus.dispatch({ type: 'task:review_needed', task });
+  }
+
+  private dispatchBlockedEvent(task: Task, reason: string): void {
+    const eventBus = this.getEventBus();
+    if (!eventBus) return;
+    eventBus.dispatch({ type: 'task:blocked', task, error: reason });
+  }
+
+  private getEventBus(): EventBus | null {
+    try {
+      return EventBus.getInstance();
+    } catch {
+      return null;
     }
   }
 }

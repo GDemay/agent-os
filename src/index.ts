@@ -16,10 +16,15 @@ const logger = createLogger({
 async function main() {
   logger.info('AgentOS Kernel initializing...');
 
-  if (!process.env.DEEPSEEK_API_KEY) {
-    logger.warn('DEEPSEEK_API_KEY is not set in environment variables');
+  if (
+    !process.env.NVIDIA_NIM_API_KEY &&
+    !process.env.NIM_API_KEY &&
+    !process.env.DEEPSEEK_API_KEY &&
+    !process.env.OPENCODE_API_KEY
+  ) {
+    logger.warn('No LLM API key is set in environment variables');
   } else {
-    logger.info('DeepSeek configuration detected');
+    logger.info('LLM configuration detected');
   }
 
   logger.info('AgentOS Kernel is running');
