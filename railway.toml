@@ -2,7 +2,7 @@
 builder = "NIXPACKS"
 
 [build.nixpacksPlan]
-providers = ["nodejs"]
+providers = ["node"]
 
 [build.nixpacksPlan.phases.setup]
 nixPkgs = ["nodejs-18_x", "npm-9_x"]
