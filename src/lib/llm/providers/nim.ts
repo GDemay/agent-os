@@ -12,28 +12,37 @@ export class NimProvider implements LLMProvider {
 
   async generate(messages: LLMMessage[], options?: LLMOptions): Promise<LLMResponse> {
     const model = options?.model || 'moonshotai/kimi-k2-5';
+    const timeoutMs = options?.timeoutMs ?? 120000; // Default 2 minute timeout
 
     const extraBody: Record<string, unknown> = {};
     if (options?.reasoning) {
       extraBody.chat_template_kwargs = { thinking: true };
     }
 
-    const response = await fetch(`${this.baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.apiKey}`,
-      },
-      body: JSON.stringify({
-        model,
-        messages,
-        temperature: options?.temperature ?? 0.7,
-        max_tokens: options?.maxTokens ?? 4096,
-        response_format: options?.responseFormat,
-        stream: false,
-        ...(Object.keys(extraBody).length > 0 ? { extra_body: extraBody } : {}),
-      }),
-    });
+    // Create abort controller for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const response = await fetch(`${this.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.apiKey}`,
+        },
+        body: JSON.stringify({
+          model,
+          messages,
+          temperature: options?.temperature ?? 0.7,
+          max_tokens: options?.maxTokens ?? 4096,
+          response_format: options?.responseFormat,
+          stream: false,
+          ...(Object.keys(extraBody).length > 0 ? { extra_body: extraBody } : {}),
+        }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -58,5 +67,12 @@ export class NimProvider implements LLMProvider {
       },
       model: data.model || model,
     };
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error(`LLM request timed out after ${timeoutMs}ms`);
+      }
+      throw error;
+    }
   }
 }

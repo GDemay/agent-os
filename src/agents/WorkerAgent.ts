@@ -143,24 +143,46 @@ export class WorkerAgent extends BaseAgent {
   private async workLoop(task: Task): Promise<void> {
     let iteration = 0;
     let parseFailures = 0;
+    const iterationTimeoutMs = 3 * 60 * 1000; // 3 minutes per iteration max
 
     while (iteration < this.maxIterations) {
       iteration++;
 
-      const prompt = await this.buildWorkPrompt(task);
-      const response = await this.think(prompt);
-      const status = await this.processResponse(response.content, task);
+      try {
+        const prompt = await this.buildWorkPrompt(task);
+        
+        // Race LLM call against timeout to prevent indefinite hangs
+        const llmPromise = this.think(prompt);
+        const response = await Promise.race([
+          llmPromise,
+          new Promise<never>((_, reject) => 
+            setTimeout(() => reject(new Error(`LLM iteration timeout after ${iterationTimeoutMs}ms`)), iterationTimeoutMs)
+          )
+        ]);
+        
+        const status = await this.processResponse(response.content, task);
 
-      if (status === 'complete' || status === 'blocked') {
-        return;
-      }
-
-      if (status === 'error') {
-        parseFailures++;
-        if (parseFailures >= 2) {
-          await this.markTaskBlocked(task, 'Repeated response parsing errors');
+        if (status === 'complete' || status === 'blocked') {
           return;
         }
+
+        if (status === 'error') {
+          parseFailures++;
+          if (parseFailures >= 2) {
+            await this.markTaskBlocked(task, 'Repeated response parsing errors');
+            return;
+          }
+        }
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        await this.logActivity('error', `Work loop iteration ${iteration} failed: ${errorMsg}`, task.id);
+        
+        // If we've had multiple failures, block the task
+        if (iteration >= 3) {
+          await this.markTaskBlocked(task, `Multiple work loop failures: ${errorMsg}`);
+          return;
+        }
+        // Otherwise continue to next iteration
       }
     }
 

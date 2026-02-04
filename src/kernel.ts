@@ -126,16 +126,36 @@ class EventDrivenKernel {
       const agent = this.agents.get(event.agentId);
       if (agent) {
         console.log(`[Kernel] Agent found, starting task processing...`);
-        try {
-          if (agent instanceof WorkerAgent) {
-            await (agent as WorkerAgent).processTask(event.task);
-          } else if (agent instanceof ProductAgent) {
-            await (agent as ProductAgent).processTask(event.task);
+        // Process task asynchronously without blocking - prevents hung tasks from blocking the kernel
+        void (async () => {
+          try {
+            const timeoutMs = 10 * 60 * 1000; // 10 minute timeout per task
+            const processPromise = agent instanceof WorkerAgent
+              ? (agent as WorkerAgent).processTask(event.task)
+              : agent instanceof ProductAgent
+                ? (agent as ProductAgent).processTask(event.task)
+                : Promise.resolve();
+            
+            // Race against timeout
+            await Promise.race([
+              processPromise,
+              new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Task processing timeout')), timeoutMs)
+              )
+            ]);
+            console.log(`[Kernel] Task completed: ${event.task.title}`);
+          } catch (error) {
+            console.error(`[Kernel] Error processing task:`, error);
+            // Mark task as blocked on error so it can be retried
+            await prisma.task.update({
+              where: { id: event.task.id },
+              data: { 
+                status: 'blocked', 
+                error: error instanceof Error ? error.message : 'Processing error' 
+              }
+            });
           }
-          console.log(`[Kernel] Task completed: ${event.task.title}`);
-        } catch (error) {
-          console.error(`[Kernel] Error processing task:`, error);
-        }
+        })();
       } else {
         console.warn(`[Kernel] No agent found for agentId: ${event.agentId}`);
         console.log(`[Kernel] Available agents: ${Array.from(this.agents.keys()).join(', ')}`);

@@ -11,6 +11,7 @@ export interface LLMOptions {
   model?: string;
   responseFormat?: { type: 'json_object' | 'text' };
   reasoning?: boolean; // Request reasoning/chain-of-thought if available
+  timeoutMs?: number; // Request timeout in milliseconds
 }
 
 export interface LLMUsage {
